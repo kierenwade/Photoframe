@@ -92,6 +92,7 @@ every 30 s, so most changes apply without a restart:
 | `sync.remote` | `gdrive:` | rclone remote (folder set by `root_folder_id`) |
 | `sync.interval_minutes` | `60` | also set `frame-sync.timer` `OnUnitActiveSec` to match |
 | `sync.max_dimension` | `3840` | long-edge downscale target |
+| `sync.max_file_mb` | `60` | skip remote files larger than this |
 | `display.matte_color` | `#EDEAE3` | mount board behind the photo |
 | `display.matte_min_border_pct` | `4` | matte inset from screen edge (vmin) |
 | `display.anti_burnin_*` | `1` px / `90` s | periodic pixel nudge |

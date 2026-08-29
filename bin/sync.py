@@ -52,9 +52,17 @@ MANIFEST = LOCAL / "manifest.json"
 MAX_DIM = int(S.get("max_dimension", 3840))
 QUALITY = int(S.get("jpeg_quality", 88))
 RCLONE_CONFIG = S.get("rclone_config", "/data/secrets/rclone.conf")
+MAX_FILE_MB = int(S.get("max_file_mb", 60))
 
-EXTS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".heif"}
-GLOB = "*.{jpg,jpeg,JPG,JPEG,png,PNG,webp,WEBP,heic,HEIC,heif,HEIF}"
+# obvious non-images to leave on the remote; anything else is pulled and then
+# probed with Pillow, so extensionless files (Drive often stores them that way)
+# still work.
+SKIP_EXTS = {
+    ".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".3gp",
+    ".pdf", ".zip", ".gz", ".tar", ".7z", ".rar",
+    ".txt", ".md", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+    ".mp3", ".wav", ".aac", ".json", ".csv",
+}
 
 
 def log(*a: object) -> None:
@@ -69,8 +77,10 @@ def run_rclone() -> None:
         "--fast-list",
         "--transfers", "4",
         "--checkers", "8",
-        "--include", GLOB,
+        "--max-size", f"{MAX_FILE_MB}M",
     ]
+    for ext in sorted(SKIP_EXTS):
+        cmd += ["--exclude", f"*{ext}", "--exclude", f"*{ext.upper()}"]
     log("+", " ".join(cmd))
     subprocess.run(cmd, check=True)
 
@@ -84,7 +94,7 @@ def process() -> None:
     PROC.mkdir(parents=True, exist_ok=True)
     originals = [
         p for p in ORIG.rglob("*")
-        if p.is_file() and p.suffix.lower() in EXTS
+        if p.is_file() and p.suffix.lower() not in SKIP_EXTS
     ]
     wanted: set[str] = set()
 
