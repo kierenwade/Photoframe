@@ -14,10 +14,20 @@ if mkdir -p /data/logs 2>/dev/null; then
 fi
 echo "$(date -Is) start-kiosk: user=$(id -un) runtime=$XDG_RUNTIME_DIR"
 
-CHROMIUM="$(command -v chromium || command -v chromium-browser || true)"
+# Call the real binary, not the Debian /usr/bin/chromium wrapper: the wrapper
+# sources /etc/chromium.d/* which injects GOOGLE_API_KEY (activates GCM),
+# --enable-remote-extensions and --load-extension=<bundled>. None of that is
+# wanted on a kiosk and it's a likely crash source.
+unset GOOGLE_API_KEY GOOGLE_DEFAULT_CLIENT_ID GOOGLE_DEFAULT_CLIENT_SECRET
+CHROMIUM=""
+for c in /usr/lib/chromium/chromium /usr/lib/chromium-browser/chromium-browser; do
+  [ -x "$c" ] && CHROMIUM="$c" && break
+done
+[ -n "$CHROMIUM" ] || CHROMIUM="$(command -v chromium || command -v chromium-browser || true)"
 if [ -z "$CHROMIUM" ]; then
   echo "chromium not found (apt install chromium)"; sleep 30; exit 1
 fi
+echo "$(date -Is) chromium: $CHROMIUM"
 if ! command -v sway >/dev/null; then
   echo "sway not found (apt install sway swaybg)"; sleep 30; exit 1
 fi
@@ -31,6 +41,7 @@ done
 CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform \
 --disable-gpu --disable-gpu-compositing \
 --no-sandbox --no-first-run --no-default-browser-check \
+--disable-extensions --disable-component-extensions-with-background-pages \
 --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
 --disable-features=Translate,TranslateUI,OptimizationHints,MediaRouter \
 --overscroll-history-navigation=0 --disable-pinch \
