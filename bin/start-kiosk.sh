@@ -37,8 +37,7 @@ CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatfor
 --force-device-scale-factor=1 \
 --disable-background-networking --disable-sync --disable-component-update \
 --disable-breakpad --disable-domain-reliability --disable-crash-reporter \
---disk-cache-size=1 --renderer-process-limit=1 \
---js-flags=--max-old-space-size=96"
+--password-store=basic --disk-cache-dir=/tmp/frame-cache --disk-cache-size=8388608"
 
 SWAYCONF="$XDG_RUNTIME_DIR/frame-sway.conf"
 cat > "$SWAYCONF" <<EOF
