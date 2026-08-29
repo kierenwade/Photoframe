@@ -60,8 +60,10 @@ WIDTH = int(R.get("width", 3840))
 HEIGHT = int(R.get("height", 2160))
 FIT = str(R.get("fit", "blur")).lower()          # "blur" | "cover" | "pad"
 PAD_COLOR = ImageColor.getrgb(str(R.get("pad_color", "#000000")))
+BORDER_PX = max(0, min(int(R.get("border_px", 0)), WIDTH // 4, HEIGHT // 4))
+BORDER_COLOR = ImageColor.getrgb(str(R.get("border_color", "#000000")))
 QUALITY = int(R.get("jpeg_quality", S.get("jpeg_quality", 88)))
-RENDER_SIG = f"v3|{WIDTH}x{HEIGHT}|{FIT}|{PAD_COLOR}|q{QUALITY}"
+RENDER_SIG = f"v4|{WIDTH}x{HEIGHT}|{FIT}|{PAD_COLOR}|b{BORDER_PX}|{BORDER_COLOR}|q{QUALITY}"
 
 # obvious non-images to leave on the remote; anything else is pulled and then
 # probed with Pillow, so extensionless files (Drive often stores them that way)
@@ -99,29 +101,37 @@ def flat_name(rel: Path) -> str:
     return str(rel.with_suffix(".jpg")).replace(os.sep, "__")
 
 
-def render(im: Image.Image) -> Image.Image:
-    """Return an exactly WIDTH x HEIGHT RGB image."""
-    im = ImageOps.exif_transpose(im).convert("RGB")
-
+def _fit(im: Image.Image, w: int, h: int) -> Image.Image:
+    """Render `im` into a w x h RGB image using FIT."""
     if FIT == "cover":
-        return ImageOps.fit(im, (WIDTH, HEIGHT), Image.LANCZOS, centering=(0.5, 0.5))
+        return ImageOps.fit(im, (w, h), Image.LANCZOS, centering=(0.5, 0.5))
 
-    # foreground: whole photo, scaled to fit inside the screen
     fg = im.copy()
-    fg.thumbnail((WIDTH, HEIGHT), Image.LANCZOS)
-    off = ((WIDTH - fg.width) // 2, (HEIGHT - fg.height) // 2)
+    fg.thumbnail((w, h), Image.LANCZOS)
+    off = ((w - fg.width) // 2, (h - fg.height) // 2)
 
     if FIT == "pad":
-        canvas = Image.new("RGB", (WIDTH, HEIGHT), PAD_COLOR)
+        canvas = Image.new("RGB", (w, h), PAD_COLOR)
         canvas.paste(fg, off)
         return canvas
 
     # "blur" (default): fill the gaps with a blurred, darkened zoom of the photo
-    small = ImageOps.fit(im, (max(WIDTH // 6, 1), max(HEIGHT // 6, 1)), Image.LANCZOS)
+    small = ImageOps.fit(im, (max(w // 6, 1), max(h // 6, 1)), Image.LANCZOS)
     small = small.filter(ImageFilter.GaussianBlur(18))
     small = ImageEnhance.Brightness(small).enhance(0.55)
-    canvas = small.resize((WIDTH, HEIGHT), Image.BICUBIC)
+    canvas = small.resize((w, h), Image.BICUBIC)
     canvas.paste(fg, off)
+    return canvas
+
+
+def render(im: Image.Image) -> Image.Image:
+    """Return an exactly WIDTH x HEIGHT RGB image, with an even border if set."""
+    im = ImageOps.exif_transpose(im).convert("RGB")
+    if BORDER_PX <= 0:
+        return _fit(im, WIDTH, HEIGHT)
+    inner = _fit(im, WIDTH - 2 * BORDER_PX, HEIGHT - 2 * BORDER_PX)
+    canvas = Image.new("RGB", (WIDTH, HEIGHT), BORDER_COLOR)
+    canvas.paste(inner, (BORDER_PX, BORDER_PX))
     return canvas
 
 
