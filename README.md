@@ -27,7 +27,7 @@ corrupt the OS.
 | Unit | Type | Job |
 |---|---|---|
 | `frame-serve.service` | daemon | tiny stdlib web server for the kiosk |
-| `frame-kiosk.service` | daemon | Chromium full-screen via the `cage` compositor |
+| tty1 autologin → `bin/start-kiosk.sh` | login shell | Chromium full-screen via the `cage` compositor (a systemd service can't get a seat for cage on this OS) |
 | `frame-cec.service` | boot oneshot | power TV on, switch to the Pi's input (retries) |
 | `frame-sync.timer` → `frame-sync.service` | timer | pull photos from Drive, resize, rebuild manifest |
 
@@ -118,7 +118,8 @@ local work.
 
 | Symptom | Check |
 |---|---|
-| Black screen, no photos | `journalctl -u frame-kiosk -b`; is `frame-serve` up? `curl localhost:8080/manifest.json` |
+| Black screen, no photos | `cat /data/logs/kiosk.log`; is `frame-serve` up? `curl 127.0.0.1:8080/manifest.json` |
+| Black screen *with* a cursor | cage is up, Chromium isn't painting — `start-kiosk.sh` handles this with `--disable-gpu --no-sandbox` and a positional URL (not `--app=`) |
 | "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `rclone --config /data/secrets/rclone.conf lsd gdrive:` |
 | TV stays off / wrong input | `docs/tv-and-hardware.md` Anynet+; `cat /data/logs/cec.log`; try `echo 'as' \| cec-client -s -d 1` |
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |

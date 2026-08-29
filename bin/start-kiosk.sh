@@ -32,6 +32,7 @@ while true; do
     --ozone-platform=wayland \
     --enable-features=UseOzonePlatform \
     --disable-gpu \
+    --no-sandbox \
     --no-first-run --no-default-browser-check \
     --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
     --disable-features=Translate,TranslateUI \

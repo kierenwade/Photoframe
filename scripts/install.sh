@@ -16,7 +16,8 @@ apt-get install -y --no-install-recommends \
   fonts-dejavu-core ca-certificates
 
 echo "==> user: $APP_USER"
-id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --create-home --shell /usr/sbin/nologin "$APP_USER"
+id -u "$APP_USER" >/dev/null 2>&1 || useradd --system --create-home "$APP_USER"
+usermod -s /bin/bash "$APP_USER"                 # needs a login shell for tty1 autologin
 usermod -aG video,render,tty,input "$APP_USER"
 loginctl enable-linger "$APP_USER" || true
 
@@ -44,7 +45,23 @@ chown -R "$APP_USER":"$APP_USER" "$APP_DIR"
 echo "==> systemd units"
 cp "$APP_DIR"/systemd/*.service "$APP_DIR"/systemd/*.timer /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable frame-serve.service frame-kiosk.service frame-cec.service frame-sync.timer
+systemctl enable frame-serve.service frame-cec.service frame-sync.timer
+
+echo "==> kiosk: autologin $APP_USER on tty1 -> start-kiosk.sh"
+# A systemd service can't get a seat for cage on this OS; a tty1 autologin does.
+mkdir -p /etc/systemd/system/getty@tty1.service.d
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf <<EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $APP_USER --noclear %I \$TERM
+EOF
+cat > "/home/$APP_USER/.bash_profile" <<EOF
+if [ "\$(tty)" = "/dev/tty1" ] && [ -z "\${WAYLAND_DISPLAY:-}" ]; then
+  exec $APP_DIR/bin/start-kiosk.sh
+fi
+EOF
+chown "$APP_USER":"$APP_USER" "/home/$APP_USER/.bash_profile"
+systemctl daemon-reload
 
 echo "==> console: disable screen blanking"
 if ! grep -q 'consoleblank=0' /boot/firmware/cmdline.txt 2>/dev/null; then
