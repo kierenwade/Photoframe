@@ -11,7 +11,7 @@ if [[ $EUID -ne 0 ]]; then echo "run with sudo" >&2; exit 1; fi
 echo "==> packages"
 apt-get update
 apt-get install -y --no-install-recommends \
-  chromium cage rclone cec-utils curl \
+  chromium sway swaybg rclone cec-utils curl \
   python3 python3-venv python3-pip \
   fonts-dejavu-core ca-certificates
 

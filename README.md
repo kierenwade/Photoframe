@@ -15,7 +15,7 @@ anti burn-in jitter.
 Smart plug on ─► Pi boots (read-only OS) ─► CEC: TV on + select this input
                      │
    frame-serve  ─────┤  localhost:8080  (config.json, manifest.json, /photos/*)
-   frame-kiosk  ─────┤  cage + Chromium --kiosk  ─►  app/  slideshow
+   kiosk (tty1)  ────┤  sway + Chromium --kiosk  ─►  app/  slideshow
    frame-sync   ─────┘  hourly: rclone (Drive, read-only) ─► downscale ─► manifest.json
 ```
 
@@ -27,7 +27,7 @@ corrupt the OS.
 | Unit | Type | Job |
 |---|---|---|
 | `frame-serve.service` | daemon | tiny stdlib web server for the kiosk |
-| tty1 autologin → `bin/start-kiosk.sh` | login shell | Chromium full-screen via the `cage` compositor (a systemd service can't get a seat for cage on this OS) |
+| tty1 autologin → `bin/start-kiosk.sh` | login shell | Chromium full-screen via the `sway` compositor in kiosk mode (a systemd service cannot get a seat for the compositor on this OS) |
 | `frame-cec.service` | boot oneshot | power TV on, switch to the Pi's input (retries) |
 | `frame-sync.timer` → `frame-sync.service` | timer | pull photos from Drive, resize, rebuild manifest |
 
@@ -38,7 +38,7 @@ config.toml               default tunables — copied to /data/config.toml on in
 bin/sync.py               rclone pull -> Pillow downscale -> manifest.json
 bin/serve.py              localhost web server (stdlib only)
 bin/cec-assert.sh         boot-time CEC power-on + active-source
-bin/start-kiosk.sh        cage + chromium launcher
+bin/start-kiosk.sh        sway + chromium kiosk launcher
 app/                      index.html, style.css, sun.js, slideshow.js
 systemd/                  the four units above
 scripts/setup-storage.sh  size the OS partition + carve the writable /data partition
@@ -119,7 +119,7 @@ local work.
 | Symptom | Check |
 |---|---|
 | Black screen, no photos | `cat /data/logs/kiosk.log`; is `frame-serve` up? `curl 127.0.0.1:8080/manifest.json` |
-| Black screen *with* a cursor | cage is up, Chromium isn't painting — `start-kiosk.sh` handles this with `--disable-gpu --no-sandbox` and a positional URL (not `--app=`) |
+| Black screen *with* a cursor | compositor up, Chromium not painting — `start-kiosk.sh` uses `--disable-gpu --no-sandbox` + positional URL. Pointer is hidden via sway `hide_cursor` |
 | "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `rclone --config /data/secrets/rclone.conf lsd gdrive:` |
 | TV stays off / wrong input | `docs/tv-and-hardware.md` Anynet+; `cat /data/logs/cec.log`; try `echo 'as' \| cec-client -s -d 1` |
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
