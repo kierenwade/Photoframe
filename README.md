@@ -19,6 +19,11 @@ Smart plug on ─► Pi boots (read-only OS) ─► CEC: TV on + select this inp
    frame-sync   ─────┘  hourly: rclone (Drive, read-only) ─► downscale ─► manifest.json
 ```
 
+**One SD card, three partitions:** `bootfs` (FAT32) + `rootfs` (ext4, **read-only**
+via Overlay FS) + `frame-data` (ext4, **read-write**, mounted at `/data` — holds
+photos, logs, secrets and the live `config.toml`). Yanking the smart plug can't
+corrupt the OS.
+
 | Unit | Type | Job |
 |---|---|---|
 | `frame-serve.service` | daemon | tiny stdlib web server for the kiosk |
@@ -29,33 +34,44 @@ Smart plug on ─► Pi boots (read-only OS) ─► CEC: TV on + select this inp
 ## Layout
 
 ```
-config.toml              all tunables (interval, matte colour, dimming, lat/long)
-bin/sync.py              rclone pull -> Pillow downscale -> manifest.json
-bin/serve.py             localhost web server (stdlib only)
-bin/cec-assert.sh        boot-time CEC power-on + active-source
-bin/start-kiosk.sh       cage + chromium launcher
-app/                     index.html, style.css, sun.js, slideshow.js
-systemd/                 the four units above
-scripts/install.sh       one-time Pi setup
-scripts/deploy.sh        rsync changes from your Mac + restart services
-docs/                    Google Drive service account, hardware, TV settings
+config.toml                    default tunables — copied to /data/config.toml on install
+bin/sync.py                    rclone pull -> Pillow downscale -> manifest.json
+bin/serve.py                   localhost web server (stdlib only)
+bin/cec-assert.sh              boot-time CEC power-on + active-source
+bin/start-kiosk.sh             cage + chromium launcher
+app/                           index.html, style.css, sun.js, slideshow.js
+systemd/                       the four units above
+scripts/make-data-partition.sh carve the writable /data partition out of the SD card
+scripts/install.sh             one-time Pi setup
+scripts/deploy.sh              rsync changes from your Mac + restart services
+docs/                          Google Drive service account, hardware, TV settings
 ```
 
 ## Setup (short version)
 
-1. **Hardware + Pi OS + TV** — [docs/tv-and-hardware.md](docs/tv-and-hardware.md).
-2. `git clone <repo> /opt/frame-tv-sync && sudo /opt/frame-tv-sync/scripts/install.sh`
+1. **Flash + partition + TV** — [docs/tv-and-hardware.md](docs/tv-and-hardware.md).
+   Flash Pi OS Lite 64-bit with the auto-expand disabled (so there's room for
+   the `/data` partition), headless SSH/Wi-Fi via files on `bootfs`.
+2. ```bash
+   sudo apt install -y git parted
+   sudo git clone <repo> /opt/frame-tv-sync
+   sudo /opt/frame-tv-sync/scripts/make-data-partition.sh   # creates + mounts /data
+   sudo /opt/frame-tv-sync/scripts/install.sh
+   ```
 3. **Google Drive** — [docs/gdrive-service-account.md](docs/gdrive-service-account.md):
    create a service account, share the folder, drop `gdrive-sa.json` +
    `rclone.conf` into `/data/secrets/`.
 4. Test the pull:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
-5. `sudo raspi-config` → enable **Overlay File System**, then reboot.
+5. `sudo raspi-config` → enable **Overlay File System** (+ boot partition
+   read-only), then reboot.
 6. Turn the smart plug off and on — photos should appear in ~30–60 s.
 
 ## Configuration
 
-Everything lives in [`config.toml`](config.toml). The slideshow re-reads it
+On the Pi the live config is **`/data/config.toml`** (on the writable partition,
+so it stays editable with Overlay FS on). The repo's [`config.toml`](config.toml)
+is just the template that gets copied there on install. The slideshow re-reads it
 every 30 s, so most changes apply without a restart:
 
 | Key | Default | Meaning |
@@ -78,11 +94,15 @@ every 30 s, so most changes apply without a restart:
 ## Develop / preview on a Mac
 
 ```bash
-mkdir -p /data/photos/processed          # or edit PHOTOS in bin/serve.py
-cp ~/somephotos/*.jpg /data/photos/processed/
-python3 bin/sync.py 2>/dev/null || true  # just to write a manifest (needs Pillow)
-python3 bin/serve.py                     # open http://localhost:8080
+export FRAME_PHOTOS_DIR=/tmp/frame-photos
+mkdir -p "$FRAME_PHOTOS_DIR/processed"
+cp ~/somephotos/*.jpg "$FRAME_PHOTOS_DIR/processed/"
+python3 bin/sync.py 2>/dev/null || true   # writes a manifest.json (needs Pillow)
+python3 bin/serve.py                      # open http://localhost:8080
 ```
+
+`FRAME_PHOTOS_DIR`, `FRAME_CONFIG` and `FRAME_PORT` override the Pi defaults for
+local work.
 
 ## Troubleshooting
 
@@ -92,5 +112,7 @@ python3 bin/serve.py                     # open http://localhost:8080
 | "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `rclone --config /data/secrets/rclone.conf lsd gdrive:` |
 | TV stays off / wrong input | `docs/tv-and-hardware.md` Anynet+; `cat /data/logs/cec.log`; try `echo 'as' \| cec-client -s -d 1` |
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
-| Config edits don't apply | Overlay FS is on — disable in `raspi-config`, edit, re-enable |
-| SD card corruption after power cuts | Overlay FS not enabled, or `/data` not on the USB stick |
+| Config edits don't apply | edit `/data/config.toml`, not the repo copy; wait 30 s |
+| SD card corruption after power cuts | Overlay FS not enabled; check `findmnt /` shows `overlay` |
+| `make-data-partition.sh` says "no free space" | auto-expand wasn't disabled before first boot — re-flash, remove the `init=…firstboot` token from `cmdline.txt` |
+| `/data` missing after reboot | `findmnt /data`; check the `LABEL=frame-data` line in `/etc/fstab` |

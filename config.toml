@@ -1,6 +1,7 @@
-# frame-tv-sync configuration
-# Edit on the Pi at /opt/frame-tv-sync/config.toml — changes are picked up live
-# (slideshow re-reads this every 30s; sync picks it up on its next run).
+# frame-tv-sync configuration (template).
+# install.sh copies this to /data/config.toml on the Pi — edit THAT copy; it's on
+# the writable partition so it stays editable with Overlay FS on. Changes are
+# picked up live (slideshow re-reads every 30s; sync on its next run).
 
 [slideshow]
 interval_seconds       = 60      # how long each photo is shown; change any time

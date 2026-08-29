@@ -29,7 +29,18 @@ except Exception:  # noqa: BLE001 - purely optional
     pass
 
 ROOT = Path(__file__).resolve().parent.parent
-CFG = tomllib.loads((ROOT / "config.toml").read_text())
+
+
+def _config_path() -> Path:
+    # live config on the writable data partition (editable with Overlay FS on);
+    # repo copy is the fallback for local dev
+    for cand in (os.environ.get("FRAME_CONFIG"), "/data/config.toml"):
+        if cand and Path(cand).is_file():
+            return Path(cand)
+    return ROOT / "config.toml"
+
+
+CFG = tomllib.loads(_config_path().read_text())
 S = CFG["sync"]
 
 # on the Pi this is /data/photos; override for local dev with FRAME_PHOTOS_DIR

@@ -26,8 +26,15 @@ python3 -m venv "$APP_DIR/.venv"
 "$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt" || \
   "$APP_DIR/.venv/bin/pip" install Pillow   # HEIF support is optional
 
-echo "==> data dirs (put this on the USB stick mounted at /data)"
+echo "==> data partition"
+if ! mountpoint -q /data; then
+  echo "!! /data is not a separate mount." >&2
+  echo "!! Run scripts/make-data-partition.sh first, then re-run this script." >&2
+  exit 1
+fi
 mkdir -p /data/photos /data/secrets /data/logs
+# live, editable config on the writable partition (survives Overlay FS)
+[[ -f /data/config.toml ]] || cp "$APP_DIR/config.toml" /data/config.toml
 chown -R "$APP_USER":"$APP_USER" /data
 chmod 700 /data/secrets
 
@@ -50,7 +57,13 @@ Done. Remaining manual steps:
   1. Create /data/secrets/gdrive-sa.json  (service-account key — see docs/gdrive-service-account.md)
   2. Create /data/secrets/rclone.conf     (see docs/gdrive-service-account.md)
   3. Test:   sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py
-  4. Enable Overlay FS:  sudo raspi-config  ->  Performance  ->  Overlay File System
-  5. Reboot.
+  4. Tune /data/config.toml if you like (this copy stays editable after step 5).
+  5. Enable Overlay FS:  sudo raspi-config -> Performance -> Overlay File System
+     (also answer "yes" to making the boot partition read-only)
+  6. Reboot.
+
+To edit anything under / (e.g. update the code) later: raspi-config -> disable
+Overlay FS -> reboot -> edit -> re-enable -> reboot. Files under /data, including
+config.toml and photos, are always writable.
 
 EOF

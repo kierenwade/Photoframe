@@ -13,17 +13,27 @@ from __future__ import annotations
 
 import json
 import os
+import socketserver
 import tomllib
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 APP = ROOT / "app"
-CONF = ROOT / "config.toml"
 # on the Pi this is /data/photos; override for local dev with FRAME_PHOTOS_DIR
 PHOTOS = Path(os.environ.get("FRAME_PHOTOS_DIR", "/data/photos"))
 PROCESSED = PHOTOS / "processed"
 PORT = int(os.environ.get("FRAME_PORT", "8080"))
+
+
+def config_path() -> Path:
+    """Live config lives on the writable data partition on the Pi
+    (/data/config.toml), so it stays editable with Overlay FS enabled.
+    Falls back to the repo copy for local dev."""
+    for cand in (os.environ.get("FRAME_CONFIG"), "/data/config.toml"):
+        if cand and Path(cand).is_file():
+            return Path(cand)
+    return ROOT / "config.toml"
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -45,7 +55,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.wfile.write(body)
 
     def _client_config(self) -> dict:
-        c = tomllib.loads(CONF.read_text())
+        c = tomllib.loads(config_path().read_text())
         return {
             "slideshow": c.get("slideshow", {}),
             "display": c.get("display", {}),
@@ -91,9 +101,20 @@ class Handler(SimpleHTTPRequestHandler):
     do_HEAD = do_GET
 
 
+class Server(ThreadingHTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+    def server_bind(self):
+        # http.server normally calls socket.getfqdn() here, a reverse-DNS lookup
+        # that can block for seconds (no DNS yet at boot, VPNs, etc.). Skip it.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = "localhost"
+        self.server_port = self.server_address[1]
+
+
 def main() -> None:
-    ThreadingHTTPServer.allow_reuse_address = True
-    with ThreadingHTTPServer(("127.0.0.1", PORT), Handler) as httpd:
+    with Server(("127.0.0.1", PORT), Handler) as httpd:
         print(f"serving on http://127.0.0.1:{PORT}", flush=True)
         httpd.serve_forever()
 
