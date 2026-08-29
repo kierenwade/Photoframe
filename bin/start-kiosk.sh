@@ -19,6 +19,31 @@ if [ -z "$CHROMIUM" ]; then
   exit 1
 fi
 
+# cage draws its own compositor pointer that page CSS can't hide. Give wlroots
+# a fully transparent cursor theme (generated once).
+CURDIR="$HOME/.local/share/icons/frame-blank/cursors"
+if [ ! -e "$CURDIR/left_ptr" ]; then
+  mkdir -p "$CURDIR"
+  python3 - "$CURDIR" <<'PY' || true
+import struct, sys, os
+d = sys.argv[1]
+blob = (b"Xcur" + struct.pack("<III", 16, 0x00010000, 1)
+        + struct.pack("<III", 0xfffd0002, 1, 28)
+        + struct.pack("<IIIIIIIIII", 36, 0xfffd0002, 24, 1, 1, 1, 0, 0, 0, 0))
+open(os.path.join(d, "left_ptr"), "wb").write(blob)
+for n in ("default","pointer","arrow","top_left_arrow","xterm","text","hand1",
+          "hand2","watch","left_ptr_watch","cross","crosshair","move","grab"):
+    p = os.path.join(d, n)
+    if not os.path.exists(p):
+        os.symlink("left_ptr", p)
+open(os.path.join(os.path.dirname(d), "index.theme"), "w").write(
+    "[Icon Theme]\nName=frame-blank\n")
+PY
+fi
+export XCURSOR_PATH="$HOME/.local/share/icons:/usr/share/icons"
+export XCURSOR_THEME=frame-blank
+export XCURSOR_SIZE=24
+
 # wait for the local server to answer
 for _ in $(seq 1 60); do
   curl -sf -o /dev/null "$URL" && break
