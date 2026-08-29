@@ -1,0 +1,14 @@
+[Unit]
+Description=frame-tv-sync pull photos from Google Drive
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=frame
+ExecStart=/opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

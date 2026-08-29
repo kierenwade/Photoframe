@@ -1,0 +1,12 @@
+[Unit]
+Description=frame-tv-sync local web server
+After=network.target
+
+[Service]
+User=frame
+ExecStart=/usr/bin/python3 /opt/frame-tv-sync/bin/serve.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+# secrets never belong in the repo — they live in /data/secrets on the Pi
+*.conf
+*sa*.json
+service-account*.json
+secrets/
+
+# runtime data
+/data/
+data/
+*.tmp
+manifest.json
+
+# python
+__pycache__/
+*.pyc
+.venv/

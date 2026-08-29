@@ -1,0 +1,3 @@
+# installed into /opt/frame-tv-sync/.venv by scripts/install.sh
+Pillow>=10.2
+pillow-heif>=0.16   # optional: lets sync.py read .heic/.heif straight from phones

@@ -1,0 +1,11 @@
+[Unit]
+Description=frame-tv-sync CEC power-on + input select
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/frame-tv-sync/bin/cec-assert.sh
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target

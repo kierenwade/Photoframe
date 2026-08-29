@@ -1,0 +1,11 @@
+[Unit]
+Description=frame-tv-sync periodic photo pull
+
+[Timer]
+OnBootSec=45s
+OnUnitActiveSec=60min
+# keep this roughly in step with [sync] interval_minutes in config.toml
+Persistent=true
+
+[Install]
+WantedBy=timers.target

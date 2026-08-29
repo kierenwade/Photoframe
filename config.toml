@@ -1,0 +1,34 @@
+# frame-tv-sync configuration
+# Edit on the Pi at /opt/frame-tv-sync/config.toml — changes are picked up live
+# (slideshow re-reads this every 30s; sync picks it up on its next run).
+
+[slideshow]
+interval_seconds       = 60      # how long each photo is shown; change any time
+min_interval_seconds   = 15      # hard floor, guards against typos
+shuffle                = true
+transition             = "crossfade"   # "crossfade" | "none"
+transition_ms          = 1200
+
+[sync]
+remote                 = "gdrive:"          # rclone remote; folder is set via root_folder_id in rclone.conf
+rclone_config          = "/data/secrets/rclone.conf"
+local_dir              = "/data/photos"
+interval_minutes       = 60
+max_dimension          = 3840    # long edge in px; photos are downscaled to this
+jpeg_quality           = 88
+
+[display]
+matte_color               = "#EDEAE3"   # mount-board colour behind the photo
+background_color           = "#000000"   # area outside the matte
+matte_min_border_pct       = 4           # matte inset from screen edge (vmin units)
+anti_burnin_jitter_px      = 1
+anti_burnin_period_seconds = 90
+
+[dimming]
+enabled          = true
+latitude         = 51.5074      # used to compute local sunrise/sunset
+longitude        = -0.1278
+day_brightness   = 1.0
+night_brightness = 0.75
+night_warmth     = 0.12         # 0..1 warm/sepia shift after dark
+fade_minutes     = 30           # ramp width around sunrise and sunset
