@@ -21,9 +21,9 @@ max_file_mb            = 60      # skip remote files bigger than this (videos et
 # changing anything here re-renders the whole library on the next sync.
 width        = 3840
 height       = 2160
-fit          = "blur"        # "blur" | "cover" | "pad"
+fit          = "cover"       # "cover" | "blur" | "pad"
+                             #   cover = fill the frame, crop the overflow
                              #   blur  = whole photo centred over a blurred zoom of itself
-                             #   cover = fill the screen, crop the overflow
                              #   pad   = whole photo centred on a solid colour
 pad_color    = "#000000"     # used when fit = pad
 border_px    = 24            # even border on all sides, in output pixels (0 = none)

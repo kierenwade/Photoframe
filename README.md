@@ -93,7 +93,7 @@ every 30 s, so most changes apply without a restart:
 | `sync.interval_minutes` | `60` | also set `frame-sync.timer` `OnUnitActiveSec` to match |
 | `sync.max_file_mb` | `60` | skip remote files larger than this |
 | `render.width` / `height` | `3840` / `2160` | output size — set to your TV panel |
-| `render.fit` | `blur` | `blur` (photo over a blurred zoom of itself), `cover` (fill + crop), `pad` (solid colour) |
+| `render.fit` | `cover` | `blur` (photo over a blurred zoom of itself), `cover` (fill + crop), `pad` (solid colour) |
 | `render.pad_color` | `#000000` | used when `fit = pad` |
 | `render.border_px` / `border_color` | `24` / `#000000` | even border on all sides (output px); `0` = none |
 | `render.jpeg_quality` | `88` | changing any `render.*` re-renders the whole library |
