@@ -109,15 +109,17 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 
 ### Changing things later
 
-- **Slideshow settings** (`interval_seconds`, matte colour, dimming, …): edit
-  `/data/config.toml` any time — it's on the writable partition and the app
-  re-reads it within 30 s.
+- **Slideshow / dimming settings** (`interval_seconds`, `dimming.*`, …): edit
+  `/data/config.toml` — the app re-reads it within 30 s.
+- **`render.*`** (fit, size, quality): also edit `/data/config.toml`, but it
+  takes effect on the next sync run (hourly) or `sudo systemctl start
+  frame-sync`, and re-renders the whole library.
 - **Code / OS changes**: `sudo raspi-config` → disable Overlay FS → reboot →
   `git pull` (or edit) → re-enable Overlay FS → reboot.
 
 ## What this is / isn't
 
 This drives the TV as an **HDMI source**, not Samsung Art Mode. The app
-reproduces the *look* (mount-board matte, slow rotation, evening dimming,
+reproduces the *look* (full-screen photos, slow rotation, evening dimming,
 anti burn-in) but the TV is a normal "on" input: higher power than Art Mode,
 and no motion-sensor behaviour — power is handled entirely by the smart plug.

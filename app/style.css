@@ -1,7 +1,5 @@
 :root {
-  --matte: #EDEAE3;
   --bg: #000;
-  --mount: 3vmin;   /* even mount-board reveal around the photo */
   --fade: 1200ms;
 }
 
@@ -28,64 +26,18 @@ html, body {
   will-change: filter, transform;
 }
 
-.slide {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity var(--fade) ease-in-out;
-  overflow: hidden;
-}
-.slide.show { opacity: 1; }
-
-/* ---- frame_style: matte ---- */
-.matte {
-  padding: var(--mount);
-  background: var(--matte);
-  line-height: 0;
-  max-width: 94vw;
-  max-height: 94vh;
-  box-shadow:
-    inset 0 0 6vmin rgba(0, 0, 0, 0.16),
-    0 0 0 1px rgba(0, 0, 0, 0.15);
-}
-.matte > img {
-  display: block;
-  width: auto;
-  height: auto;
-  max-width: calc(94vw - 2 * var(--mount));
-  max-height: calc(94vh - 2 * var(--mount));
-  box-shadow: 0 1vmin 3vmin rgba(0, 0, 0, 0.25);
-}
-
-/* ---- frame_style: blur ---- */
-.slide > .blurbg {
-  position: absolute;
-  inset: -6%;
-  background-size: cover;
-  background-position: center;
-  filter: blur(42px) brightness(0.55);
-  transform: scale(1.12);
-}
-.slide > img.center {
-  position: relative;
-  width: auto;
-  height: auto;
-  max-width: 90%;
-  max-height: 92%;
-  box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, 0.55);
-}
-
-/* ---- frame_style: fill ---- */
-.slide > img.fill {
+/* photos are pre-rendered by sync.py to the screen's exact size, so they fill
+   edge to edge; `cover` just absorbs any small panel/overscan difference */
+.photo {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: opacity var(--fade) ease-in-out;
 }
+.photo.show { opacity: 1; }
 
 .msg {
   position: fixed;

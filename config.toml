@@ -7,7 +7,6 @@
 interval_seconds       = 60      # how long each photo is shown; change any time
 min_interval_seconds   = 15      # hard floor, guards against typos
 shuffle                = true
-transition             = "crossfade"   # "crossfade" | "none"
 transition_ms          = 1200
 
 [sync]
@@ -15,15 +14,21 @@ remote                 = "gdrive:"          # rclone remote; folder is set via r
 rclone_config          = "/data/secrets/rclone.conf"
 local_dir              = "/data/photos"
 interval_minutes       = 60
-max_dimension          = 3840    # long edge in px; photos are downscaled to this
-jpeg_quality           = 88
 max_file_mb            = 60      # skip remote files bigger than this (videos etc.)
 
+[render]
+# every photo is rendered once to exactly width x height so it fills the screen.
+# changing anything here re-renders the whole library on the next sync.
+width        = 3840
+height       = 2160
+fit          = "blur"        # "blur" | "cover" | "pad"
+                             #   blur  = whole photo centred over a blurred zoom of itself
+                             #   cover = fill the screen, crop the overflow
+                             #   pad   = whole photo centred on a solid colour
+pad_color    = "#000000"     # used when fit = pad
+jpeg_quality = 88
+
 [display]
-frame_style                = "matte"     # "matte" | "blur" | "fill"
-matte_color                = "#EDEAE3"   # mount-board colour (frame_style = matte)
-matte_mount_vmin           = 3           # even mount-board reveal around the photo
-background_color            = "#000000"   # screen area outside the picture
 anti_burnin_jitter_px      = 1
 anti_burnin_period_seconds = 90
 

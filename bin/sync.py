@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Pull photos from Google Drive, downscale them, and write a manifest.
+"""Pull photos from Google Drive, render them to the TV's size, write a manifest.
 
 Flow:
   1. `rclone sync`  remote -> /data/photos/originals   (read-only service account)
-  2. downscale/convert new or changed files -> /data/photos/processed/*.jpg
+  2. render each new/changed file -> /data/photos/processed/*.jpg
+     every output is exactly [render] width x height so it fills the screen
   3. prune processed files whose original has gone
   4. write /data/photos/manifest.json  (the list the slideshow reads)
 
-Safe to run repeatedly; step 2 is incremental via mtime.
+Incremental via mtime. If the [render] settings change, everything is
+re-rendered (a signature file under processed/ tracks them).
 """
 from __future__ import annotations
 
@@ -19,7 +21,7 @@ import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageColor, ImageEnhance, ImageFilter, ImageOps
 
 try:  # optional HEIC/HEIF support
     import pillow_heif
@@ -42,17 +44,24 @@ def _config_path() -> Path:
 
 CFG = tomllib.loads(_config_path().read_text())
 S = CFG["sync"]
+R = CFG.get("render", {})
 
 # on the Pi this is /data/photos; override for local dev with FRAME_PHOTOS_DIR
 LOCAL = Path(os.environ.get("FRAME_PHOTOS_DIR", S["local_dir"]))
 ORIG = LOCAL / "originals"
 PROC = LOCAL / "processed"
 MANIFEST = LOCAL / "manifest.json"
+SIGFILE = PROC / ".render"
 
-MAX_DIM = int(S.get("max_dimension", 3840))
-QUALITY = int(S.get("jpeg_quality", 88))
 RCLONE_CONFIG = S.get("rclone_config", "/data/secrets/rclone.conf")
 MAX_FILE_MB = int(S.get("max_file_mb", 60))
+
+WIDTH = int(R.get("width", 3840))
+HEIGHT = int(R.get("height", 2160))
+FIT = str(R.get("fit", "blur")).lower()          # "blur" | "cover" | "pad"
+PAD_COLOR = ImageColor.getrgb(str(R.get("pad_color", "#000000")))
+QUALITY = int(R.get("jpeg_quality", S.get("jpeg_quality", 88)))
+RENDER_SIG = f"v3|{WIDTH}x{HEIGHT}|{FIT}|{PAD_COLOR}|q{QUALITY}"
 
 # obvious non-images to leave on the remote; anything else is pulled and then
 # probed with Pillow, so extensionless files (Drive often stores them that way)
@@ -90,8 +99,42 @@ def flat_name(rel: Path) -> str:
     return str(rel.with_suffix(".jpg")).replace(os.sep, "__")
 
 
+def render(im: Image.Image) -> Image.Image:
+    """Return an exactly WIDTH x HEIGHT RGB image."""
+    im = ImageOps.exif_transpose(im).convert("RGB")
+
+    if FIT == "cover":
+        return ImageOps.fit(im, (WIDTH, HEIGHT), Image.LANCZOS, centering=(0.5, 0.5))
+
+    # foreground: whole photo, scaled to fit inside the screen
+    fg = im.copy()
+    fg.thumbnail((WIDTH, HEIGHT), Image.LANCZOS)
+    off = ((WIDTH - fg.width) // 2, (HEIGHT - fg.height) // 2)
+
+    if FIT == "pad":
+        canvas = Image.new("RGB", (WIDTH, HEIGHT), PAD_COLOR)
+        canvas.paste(fg, off)
+        return canvas
+
+    # "blur" (default): fill the gaps with a blurred, darkened zoom of the photo
+    small = ImageOps.fit(im, (max(WIDTH // 6, 1), max(HEIGHT // 6, 1)), Image.LANCZOS)
+    small = small.filter(ImageFilter.GaussianBlur(18))
+    small = ImageEnhance.Brightness(small).enhance(0.55)
+    canvas = small.resize((WIDTH, HEIGHT), Image.BICUBIC)
+    canvas.paste(fg, off)
+    return canvas
+
+
 def process() -> None:
     PROC.mkdir(parents=True, exist_ok=True)
+
+    if SIGFILE.exists() and SIGFILE.read_text().strip() != RENDER_SIG:
+        n = 0
+        for p in PROC.glob("*.jpg"):
+            p.unlink(missing_ok=True)
+            n += 1
+        log(f"render settings changed -> re-rendering all ({n} cleared)")
+
     originals = [
         p for p in ORIG.rglob("*")
         if p.is_file() and p.suffix.lower() not in SKIP_EXTS
@@ -105,14 +148,12 @@ def process() -> None:
             continue
         try:
             with Image.open(src) as im:
-                im = ImageOps.exif_transpose(im)
-                im = im.convert("RGB")
-                im.thumbnail((MAX_DIM, MAX_DIM), Image.LANCZOS)
-                tmp = out.with_suffix(".tmp")
-                im.save(tmp, "JPEG", quality=QUALITY, optimize=True, progressive=True)
-                tmp.replace(out)
+                rendered = render(im)
+            tmp = out.with_suffix(".tmp")
+            rendered.save(tmp, "JPEG", quality=QUALITY, optimize=True, progressive=True)
+            tmp.replace(out)
             os.utime(out, (src.stat().st_mtime, src.stat().st_mtime))
-            log("processed", src.name, "->", out.name)
+            log("rendered", src.name, "->", out.name)
         except Exception as e:  # noqa: BLE001 - one bad file shouldn't stop the run
             print("SKIP", src, "-", e, file=sys.stderr, flush=True)
 
@@ -121,23 +162,14 @@ def process() -> None:
             p.unlink(missing_ok=True)
             log("pruned", p.name)
 
+    SIGFILE.write_text(RENDER_SIG)
+
 
 def write_manifest() -> None:
-    photos = []
-    for p in sorted(PROC.glob("*.jpg")):
-        try:
-            with Image.open(p) as im:
-                w, h = im.size
-        except Exception:  # noqa: BLE001
-            continue
-        photos.append(
-            {
-                "src": f"photos/{p.name}",
-                "w": w,
-                "h": h,
-                "orientation": "portrait" if h > w else "landscape",
-            }
-        )
+    photos = [
+        {"src": f"photos/{p.name}", "w": WIDTH, "h": HEIGHT}
+        for p in sorted(PROC.glob("*.jpg"))
+    ]
     tmp = MANIFEST.with_suffix(".tmp")
     tmp.write_text(
         json.dumps(

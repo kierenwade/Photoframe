@@ -1,14 +1,12 @@
 /* slideshow.js — the whole kiosk client.
  *
+ * Photos are pre-rendered by sync.py to the screen's exact size, so the client
+ * just cross-fades between two <img> layers and applies dimming + jitter.
+ *
  * - polls /config.json every 30s  (live config changes)
  * - polls /manifest.json every 5m  (new photos from sync.py)
- * - cross-fades between two .slide layers on an interval
- * - each slide is built per-photo for the chosen frame_style:
- *     "matte" (default) mount-board with an even reveal around the photo
- *     "blur"            photo centred over a blurred zoom of itself
- *     "fill"            photo covers the screen, cropped
- * - nudges the picture 1px periodically (anti burn-in)
  * - dims + warms the picture around sunset using sun.js
+ * - nudges the picture 1px periodically (anti burn-in)
  */
 (function () {
   "use strict";
@@ -19,13 +17,13 @@
 
   var cfg = {
     slideshow: { interval_seconds: 60, min_interval_seconds: 15, shuffle: true, transition_ms: 1200 },
-    display: { frame_style: "matte", matte_color: "#EDEAE3", matte_mount_vmin: 3, background_color: "#000000", anti_burnin_jitter_px: 1, anti_burnin_period_seconds: 90 },
+    display: { anti_burnin_jitter_px: 1, anti_burnin_period_seconds: 90 },
     dimming: { enabled: true, latitude: 51.5074, longitude: -0.1278, day_brightness: 1, night_brightness: 0.75, night_warmth: 0.12, fade_minutes: 30 },
   };
 
   var stage = document.querySelector(".stage");
   var msg = document.getElementById("msg");
-  var slides = [document.getElementById("slideA"), document.getElementById("slideB")];
+  var layers = [document.getElementById("layerA"), document.getElementById("layerB")];
   var front = 0;
 
   var srcs = [];
@@ -40,12 +38,7 @@
   /* ---------- config ---------- */
 
   function applyDisplayVars() {
-    var d = cfg.display || {};
-    var root = document.documentElement.style;
-    root.setProperty("--matte", d.matte_color || "#EDEAE3");
-    root.setProperty("--bg", d.background_color || "#000");
-    root.setProperty("--mount", num(d.matte_mount_vmin, 3) + "vmin");
-    root.setProperty("--fade", num(cfg.slideshow.transition_ms, 1200) + "ms");
+    document.documentElement.style.setProperty("--fade", num(cfg.slideshow.transition_ms, 1200) + "ms");
   }
 
   function slideMs() {
@@ -101,33 +94,6 @@
 
   /* ---------- slideshow ---------- */
 
-  function buildSlide(el, url) {
-    var style = (cfg.display && cfg.display.frame_style) || "matte";
-    el.innerHTML = "";
-    if (style === "fill") {
-      var f = new Image();
-      f.className = "fill";
-      f.src = url;
-      el.appendChild(f);
-    } else if (style === "blur") {
-      var bg = document.createElement("div");
-      bg.className = "blurbg";
-      bg.style.backgroundImage = "url('" + url.replace(/'/g, "%27") + "')";
-      var c = new Image();
-      c.className = "center";
-      c.src = url;
-      el.appendChild(bg);
-      el.appendChild(c);
-    } else {
-      var m = document.createElement("div");
-      m.className = "matte";
-      var im = new Image();
-      im.src = url;
-      m.appendChild(im);
-      el.appendChild(m);
-    }
-  }
-
   function scheduleNext(ms) {
     clearTimeout(slideTimer);
     slideTimer = setTimeout(nextSlide, ms == null ? slideMs() : ms);
@@ -138,12 +104,12 @@
     if (cursor >= order.length) rebuildOrder();
     var url = srcs[order[cursor++]];
 
+    var back = layers[front ^ 1];
     var pre = new Image();
     pre.onload = function () {
-      var back = slides[front ^ 1];
-      buildSlide(back, url);
+      back.src = url;
       back.classList.add("show");
-      slides[front].classList.remove("show");
+      layers[front].classList.remove("show");
       front ^= 1;
       scheduleNext();
     };

@@ -1,9 +1,9 @@
 # frame-tv-sync
 
 Turn a Samsung Frame TV into a Google-Drive photo frame using a Raspberry Pi on
-the HDMI input. The Pi syncs a Drive folder, downscales the photos, and shows
-them full-screen with a mount-board matte, slow cross-fades, evening dimming and
-anti burn-in jitter.
+the HDMI input. The Pi syncs a Drive folder, renders each photo to the TV's
+exact resolution so it fills the screen, and shows them with slow cross-fades,
+evening dimming and anti burn-in jitter.
 
 > **Not** Samsung Art Mode. The TV runs as a normal HDMI source; this app
 > reproduces the *look*. Power on/off is done with a smart plug feeding both the
@@ -91,10 +91,11 @@ every 30 s, so most changes apply without a restart:
 | `slideshow.transition` / `transition_ms` | `crossfade` / `1200` | fade style/length |
 | `sync.remote` | `gdrive:` | rclone remote (folder set by `root_folder_id`) |
 | `sync.interval_minutes` | `60` | also set `frame-sync.timer` `OnUnitActiveSec` to match |
-| `sync.max_dimension` | `3840` | long-edge downscale target |
 | `sync.max_file_mb` | `60` | skip remote files larger than this |
-| `display.matte_color` | `#EDEAE3` | mount board behind the photo |
-| `display.matte_min_border_pct` | `4` | matte inset from screen edge (vmin) |
+| `render.width` / `height` | `3840` / `2160` | output size — set to your TV panel |
+| `render.fit` | `blur` | `blur` (photo over a blurred zoom of itself), `cover` (fill + crop), `pad` (solid colour) |
+| `render.pad_color` | `#000000` | used when `fit = pad` |
+| `render.jpeg_quality` | `88` | changing any `render.*` re-renders the whole library |
 | `display.anti_burnin_*` | `1` px / `90` s | periodic pixel nudge |
 | `dimming.enabled` | `true` | evening dim/warm |
 | `dimming.latitude` / `longitude` | London | for local sunrise/sunset |
