@@ -12,7 +12,19 @@ URL="http://127.0.0.1:8080/"
 if mkdir -p /data/logs 2>/dev/null; then
   exec >>/data/logs/kiosk.log 2>&1
 fi
-echo "$(date -Is) start-kiosk: user=$(id -un) runtime=$XDG_RUNTIME_DIR"
+echo "$(date -Is) start-kiosk: user=$(id -un) runtime=$XDG_RUNTIME_DIR pid=$$"
+
+# single-instance lock: a restarted tty1 session must not stack a second
+# sway+Chromium on top of a running one (they fight over the seat/display).
+exec 9>"$XDG_RUNTIME_DIR/frame-kiosk.lock"
+if ! flock -n 9; then
+  echo "$(date -Is) another start-kiosk holds the lock — exiting"
+  exit 0
+fi
+# reap any strays from a previous instance that is still dying
+pkill -9 -x sway 2>/dev/null || true
+pkill -9 -f '/usr/lib/chromium/chromium' 2>/dev/null || true
+sleep 1
 
 # Call the real binary, not the Debian /usr/bin/chromium wrapper: the wrapper
 # sources /etc/chromium.d/* which injects GOOGLE_API_KEY (activates GCM),
@@ -47,7 +59,7 @@ CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatfor
 --overscroll-history-navigation=0 --disable-pinch \
 --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required \
 --force-device-scale-factor=1 --mute-audio \
---enable-logging=stderr --v=1 \
+--enable-logging=stderr \
 --disable-background-networking --disable-sync --disable-component-update \
 --disable-breakpad --disable-domain-reliability --disable-crash-reporter \
 --password-store=basic --disk-cache-dir=/tmp/frame-cache --disk-cache-size=8388608"
