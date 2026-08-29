@@ -31,10 +31,14 @@ done
 CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform \
 --no-sandbox --no-first-run --no-default-browser-check \
 --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
---disable-gpu-driver-bug-workarounds \
---disable-features=Translate,TranslateUI --overscroll-history-navigation=0 \
---disable-pinch --check-for-update-interval=31536000 \
---autoplay-policy=no-user-gesture-required --force-device-scale-factor=1"
+--disable-features=Translate,TranslateUI,OptimizationHints,MediaRouter \
+--overscroll-history-navigation=0 --disable-pinch \
+--check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required \
+--force-device-scale-factor=1 \
+--disable-background-networking --disable-sync --disable-component-update \
+--disable-breakpad --disable-domain-reliability --disable-crash-reporter \
+--disk-cache-size=1 --renderer-process-limit=1 \
+--js-flags=--max-old-space-size=96"
 
 SWAYCONF="$XDG_RUNTIME_DIR/frame-sway.conf"
 cat > "$SWAYCONF" <<EOF
@@ -45,7 +49,7 @@ default_floating_border none
 xwayland disable
 for_window [app_id=".*"] fullscreen enable, border none
 for_window [title=".*"] fullscreen enable, border none
-exec sh -c 'exec $CHROMIUM $CHROME_FLAGS "$URL"; swaymsg exit'
+exec sh -c '$CHROMIUM $CHROME_FLAGS "$URL"; swaymsg exit'
 EOF
 
 # sway exits when Chromium exits (swaymsg exit); loop so a crash just respawns
