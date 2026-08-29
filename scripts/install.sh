@@ -51,6 +51,12 @@ if ! grep -q 'consoleblank=0' /boot/firmware/cmdline.txt 2>/dev/null; then
   sed -i 's/$/ consoleblank=0/' /boot/firmware/cmdline.txt || true
 fi
 
+echo "==> disable apt/man-db background timers"
+# They can't achieve anything once Overlay FS is on (writes go to a RAM overlay
+# and vanish on reboot) and just cost RAM. Updates are done manually — see the
+# Maintenance section of the README.
+systemctl disable --now apt-daily.timer apt-daily-upgrade.timer man-db.timer 2>/dev/null || true
+
 cat <<'EOF'
 
 Done. Remaining manual steps:

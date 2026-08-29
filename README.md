@@ -116,3 +116,30 @@ local work.
 | SD card corruption after power cuts | Overlay FS not enabled; check `findmnt /` shows `overlay` |
 | `make-data-partition.sh` says "no free space" | auto-expand wasn't disabled before first boot — re-flash, remove the `init=…firstboot` token from `cmdline.txt` |
 | `/data` missing after reboot | `findmnt /data`; check the `LABEL=frame-data` line in `/etc/fstab` |
+
+## Maintenance
+
+Nothing updates itself. Raspberry Pi OS doesn't auto-upgrade packages, and once
+Overlay FS is on the root filesystem is read-only anyway (`apt` writes would land
+in a RAM overlay and vanish on reboot). `install.sh` also disables the
+`apt-daily` / `man-db` background timers since they can't achieve anything under
+overlay.
+
+Update deliberately, every few months or when a security fix matters:
+
+```bash
+sudo raspi-config        # Performance -> Overlay File System -> Disable
+sudo reboot
+
+sudo apt update && sudo apt full-upgrade
+cd /opt/frame-tv-sync && sudo git pull
+sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r requirements.txt   # optional
+
+sudo raspi-config        # re-enable Overlay File System
+sudo reboot
+```
+
+The box only makes outbound connections (Google Drive), so quarterly is plenty.
+
+To change **slideshow settings** you do *not* need any of this — edit
+`/data/config.toml` (writable under overlay) and the app picks it up within 30 s.
