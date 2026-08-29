@@ -41,7 +41,13 @@ if [[ -b $datapart ]]; then
   fi
   echo "== finalising =="
   resize2fs "$rootpart" || true
-  blkid "$datapart" >/dev/null 2>&1 || mkfs.ext4 -F -L "$LABEL" "$datapart"
+  # format unless the partition already carries our label (idempotent re-run).
+  # wipefs first: a re-used card can leave a stale fs signature here, which
+  # would otherwise make us skip mkfs and then fail to mount by label.
+  if [[ "$(blkid -o value -s LABEL "$datapart" 2>/dev/null)" != "$LABEL" ]]; then
+    wipefs -a "$datapart" || true
+    mkfs.ext4 -F -L "$LABEL" "$datapart"
+  fi
   mkdir -p "$MNT"
   grep -q "LABEL=$LABEL" /etc/fstab ||
     echo "LABEL=$LABEL  $MNT  ext4  defaults,noatime,commit=30,errors=remount-ro  0  2" >>/etc/fstab
