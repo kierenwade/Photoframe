@@ -23,12 +23,15 @@ from pathlib import Path
 
 from PIL import Image, ImageColor, ImageEnhance, ImageFilter, ImageOps
 
-try:  # optional HEIC/HEIF support
+try:  # HEIC/HEIF support (iPhone photos)
     import pillow_heif
 
     pillow_heif.register_heif_opener()
-except Exception:  # noqa: BLE001 - purely optional
-    pass
+    _HEIF = True
+except Exception:  # noqa: BLE001
+    _HEIF = False
+    print("warning: pillow-heif not installed — .heic/.heif files will be skipped",
+          file=sys.stderr, flush=True)
 
 ROOT = Path(__file__).resolve().parent.parent
 

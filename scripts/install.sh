@@ -24,8 +24,9 @@ loginctl enable-linger "$APP_USER" || true
 echo "==> python venv"
 python3 -m venv "$APP_DIR/.venv"
 "$APP_DIR/.venv/bin/pip" install --upgrade pip
-"$APP_DIR/.venv/bin/pip" install -r "$APP_DIR/requirements.txt" || \
-  "$APP_DIR/.venv/bin/pip" install Pillow   # HEIF support is optional
+"$APP_DIR/.venv/bin/pip" install Pillow                       # required
+"$APP_DIR/.venv/bin/pip" install pillow-heif || \
+  echo "!! pillow-heif failed to install — .heic/.heif files will be skipped"
 
 echo "==> data partition"
 if ! mountpoint -q /data; then
