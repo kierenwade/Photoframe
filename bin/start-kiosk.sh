@@ -73,12 +73,25 @@ default_floating_border none
 xwayland disable
 for_window [app_id=".*"] fullscreen enable, border none
 for_window [title=".*"] fullscreen enable, border none
-exec sh -c '$CHROMIUM $CHROME_FLAGS "$URL"; swaymsg exit'
+exec $CHROMIUM $CHROME_FLAGS "$URL"
 EOF
 
-# sway exits when Chromium exits (swaymsg exit); loop so a crash just respawns
+# Loop so a crash respawns the whole stack. A watchdog takes sway down if
+# Chromium disappears for any reason (crash, or a stray `pkill -f chromium`
+# that also caught the launcher) so the loop can rebuild both.
 while true; do
-  sway -c "$SWAYCONF"
-  echo "$(date -Is) sway exited ($?); respawning in 3s"
+  sway -c "$SWAYCONF" &
+  sway_pid=$!
+  (
+    sleep 15   # give Chromium time to come up
+    while kill -0 "$sway_pid" 2>/dev/null; do
+      pgrep -f "$CHROMIUM --kiosk" >/dev/null || { kill "$sway_pid" 2>/dev/null; break; }
+      sleep 5
+    done
+  ) &
+  watch_pid=$!
+  wait "$sway_pid"
+  kill "$watch_pid" 2>/dev/null || true
+  echo "$(date -Is) sway exited; respawning in 3s"
   sleep 3
 done

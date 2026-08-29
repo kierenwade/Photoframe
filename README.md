@@ -126,6 +126,7 @@ local work.
 | "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `rclone --config /data/secrets/rclone.conf lsd gdrive:` |
 | TV stays off / wrong input | `docs/tv-and-hardware.md` Anynet+; `cat /data/logs/cec.log`; try `echo 'as' \| cec-client -s -d 1` |
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
+| Restart the kiosk | `sudo pkill -x sway` (never `pkill -f chromium` — it also kills the launcher). |
 | Config edits don't apply | edit `/data/config.toml`, not the repo copy; wait 30 s |
 | SD card corruption after power cuts | Overlay FS not enabled; check `findmnt /` shows `overlay` |
 | `setup-storage.sh` says "Not enough free space" | `growpart`/`resize` weren't disabled before first boot — `/` filled the card. Re-flash with the `cmdline.txt` + `user-data` edits from `docs/tv-and-hardware.md` |
