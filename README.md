@@ -35,6 +35,7 @@ corrupt the OS.
 
 ```
 config.toml               default tunables — copied to /data/config.toml on install
+chromium-policy.json      managed kiosk policy -> /etc/chromium/policies/managed/ on install
 bin/sync.py               rclone pull -> Pillow downscale -> manifest.json
 bin/serve.py              localhost web server (stdlib only)
 bin/cec-assert.sh         boot-time CEC power-on + active-source

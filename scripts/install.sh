@@ -63,6 +63,10 @@ EOF
 chown "$APP_USER":"$APP_USER" "/home/$APP_USER/.bash_profile"
 systemctl daemon-reload
 
+echo "==> chromium: managed kiosk policy"
+install -d /etc/chromium/policies/managed
+install -m 644 "$APP_DIR/chromium-policy.json" /etc/chromium/policies/managed/frame-kiosk.json
+
 echo "==> console: disable screen blanking"
 if ! grep -q 'consoleblank=0' /boot/firmware/cmdline.txt 2>/dev/null; then
   sed -i 's/$/ consoleblank=0/' /boot/firmware/cmdline.txt || true

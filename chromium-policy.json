@@ -1,0 +1,22 @@
+{
+  "_comment": "Installed to /etc/chromium/policies/managed/frame-kiosk.json by scripts/install.sh. Keeps Chromium a dumb kiosk: no New Tab Page, no phone-home, no sync/telemetry/promos.",
+  "NewTabPageLocation": "http://127.0.0.1:8080/",
+  "RestoreOnStartup": 4,
+  "RestoreOnStartupURLs": ["http://127.0.0.1:8080/"],
+  "NTPContentSuggestionsEnabled": false,
+  "MediaRecommendationsEnabled": false,
+  "MetricsReportingEnabled": false,
+  "BackgroundModeEnabled": false,
+  "SyncDisabled": true,
+  "SafeBrowsingEnabled": false,
+  "PasswordManagerEnabled": false,
+  "SpellcheckEnabled": false,
+  "PromotionalTabsEnabled": false,
+  "DefaultSearchProviderEnabled": false,
+  "AutofillAddressEnabled": false,
+  "AutofillCreditCardEnabled": false,
+  "PrivacySandboxPromptEnabled": false,
+  "DefaultNotificationsSetting": 2,
+  "DefaultMediaStreamSetting": 2,
+  "URLBlocklist": ["https://android.clients.google.com/*"]
+}
