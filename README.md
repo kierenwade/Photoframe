@@ -95,7 +95,7 @@ every 30 s, so most changes apply without a restart:
 | `render.width` / `height` | `3840` / `2160` | output size — set to your TV panel |
 | `render.fit` | `cover` | `blur` (photo over a blurred zoom of itself), `cover` (fill + crop), `pad` (solid colour) |
 | `render.pad_color` | `#000000` | used when `fit = pad` |
-| `render.border_px` / `border_color` | `24` / `#000000` | even border on all sides (output px); `0` = none |
+| `render.border_px` / `border_color` | `48` / `#EDEAE3` | even border on all sides (output px); `0` = none |
 | `render.jpeg_quality` | `88` | changing any `render.*` re-renders the whole library |
 | `display.anti_burnin_*` | `1` px / `90` s | periodic pixel nudge |
 | `dimming.enabled` | `true` | evening dim/warm |
