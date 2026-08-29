@@ -40,54 +40,71 @@ script then wakes the TV and pulls the input to itself.
 
 ## SD card layout (one card, two usable volumes)
 
-| # | Name | FS | Mount | State after setup |
-|---|---|---|---|---|
-| 1 | `bootfs` | FAT32 | `/boot/firmware` | read-only (rw only during OS updates) |
-| 2 | `rootfs` | ext4 | `/` | **read-only** via Overlay FS — writes go to RAM, dropped on reboot |
-| 3 | `frame-data` | ext4 | `/data` | **read-write** — photos, logs, secrets, live `config.toml` |
+| # | Name | FS | Mount | Size | State after setup |
+|---|---|---|---|---|---|
+| 1 | `bootfs` | FAT32 | `/boot/firmware` | ~512 MB | read-only (rw only during OS updates) |
+| 2 | `rootfs` | ext4 | `/` | **8 GiB** (fixed) | **read-only** via Overlay FS — writes go to RAM, dropped on reboot |
+| 3 | `frame-data` | ext4 | `/data` | rest of card | **read-write** — photos, logs, secrets, live `config.toml` |
 
-Pulling the plug can't corrupt partitions 1–2. Partition 3 uses ext4 journalling
-+ `errors=remount-ro`; worst case is losing the last few photos pulled, which
-re-sync from Drive on the next run.
+`scripts/setup-storage.sh` builds this. Pulling the plug can't corrupt
+partitions 1–2. Partition 3 uses ext4 journalling + `errors=remount-ro`; worst
+case is losing the last few photos pulled, which re-sync from Drive next run.
 
 ## Pi OS setup
 
-1. **Flash** Raspberry Pi OS **Lite 64-bit** (Bookworm) with Raspberry Pi Imager.
-   When asked to apply OS customization, choose **No** — we configure headless
-   by hand so the first-boot rootfs auto-expand does **not** consume the whole
-   card (we need free space for partition 3).
+Current Raspberry Pi OS (Trixie) images configure first boot with **cloud-init**,
+and both a `resize` kernel arg *and* cloud-init's `growpart` will expand `/` to
+fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
+
+1. **Flash** Raspberry Pi OS **Lite 64-bit** with Raspberry Pi Imager. In the
+   customisation dialog **do** set: hostname, username + password, Wi-Fi, locale,
+   and **tick "Enable SSH" (password auth)**.
 
 2. Re-insert the card; macOS mounts **bootfs**. In that volume:
-   - Edit `cmdline.txt` (keep it one line). Remove the token
-     `init=/usr/lib/raspberrypi-sys-mods/firstboot` — or on older images
-     `init=/usr/lib/raspi-config/init_resize.sh`. Leave everything else.
-   - `touch /Volumes/bootfs/ssh`
-   - Create `userconf.txt` containing `frame:<HASH>` where
-     `HASH=$(printf 'YOURPASSWORD' | openssl passwd -6 -stdin)` (run on the Mac).
-   - Create `wpa_supplicant.conf`:
-     ```
-     country=GB
-     ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-     update_config=1
-     network={
-         ssid="YOUR_WIFI"
-         psk="YOUR_WIFI_PASSWORD"
-     }
-     ```
 
-3. Boot the Pi, then `ssh frame@frame-pi.local`.
+   - Remove the `resize` token from `cmdline.txt` (stays one line):
+     ```bash
+     sed -i '' 's/ resize / /' /Volumes/bootfs/cmdline.txt
+     cat /Volumes/bootfs/cmdline.txt          # verify: still one line, no "resize"
+     ```
+   - Stop cloud-init growing the filesystem — append to `user-data`:
+     ```bash
+     cat >> /Volumes/bootfs/user-data <<'EOF'
 
-4. ```bash
-   sudo apt update && sudo apt install -y git parted
-   sudo git clone <repo> /opt/frame-tv-sync
-   sudo /opt/frame-tv-sync/scripts/make-data-partition.sh   # creates + mounts /data
+     # keep / at its image size; setup-storage.sh sizes it and adds /data
+     growpart:
+       mode: "off"
+     resize_rootfs: false
+     EOF
+     ```
+     (If you skipped "Enable SSH" in step 1, also add `ssh_pwauth: true` and a
+     `runcmd:` with `- [ systemctl, enable, --now, ssh ]`.)
+
+3. Eject, boot the Pi (first boot runs cloud-init then reboots once, ~3–5 min),
+   then `ssh <user>@<hostname>.local`.
+
+4. Lay out storage — run **twice**, it reboots itself in between:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/kierenwade/Photoframe/main/scripts/setup-storage.sh -o /tmp/setup-storage.sh
+   sudo bash /tmp/setup-storage.sh          # edits the partition table, reboots
+   # reconnect, then:
+   sudo bash /tmp/setup-storage.sh          # grows /, formats + mounts /data
+   ```
+   `/` fresh off the image is nearly full, which is why this uses only
+   base-image tools and runs before `apt`. Override the OS size with
+   `sudo FRAME_ROOT_GB=6 bash /tmp/setup-storage.sh`.
+
+5. Install:
+   ```bash
+   sudo apt update && sudo apt install -y git
+   sudo git clone https://github.com/kierenwade/Photoframe.git /opt/frame-tv-sync
    sudo /opt/frame-tv-sync/scripts/install.sh
    ```
 
-5. Add the two secret files (see `gdrive-service-account.md`), then test:
+6. Add the two secret files (see `gdrive-service-account.md`), then test:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
 
-6. `sudo raspi-config` → **Performance → Overlay File System → Enable**, and
+7. `sudo raspi-config` → **Performance → Overlay File System → Enable**, and
    answer **yes** to making the boot partition read-only. Reboot.
 
 ### Changing things later

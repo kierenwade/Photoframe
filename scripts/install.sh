@@ -29,7 +29,7 @@ python3 -m venv "$APP_DIR/.venv"
 echo "==> data partition"
 if ! mountpoint -q /data; then
   echo "!! /data is not a separate mount." >&2
-  echo "!! Run scripts/make-data-partition.sh first, then re-run this script." >&2
+  echo "!! Run scripts/setup-storage.sh (twice, with a reboot between) first." >&2
   exit 1
 fi
 mkdir -p /data/photos /data/secrets /data/logs

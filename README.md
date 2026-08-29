@@ -34,38 +34,47 @@ corrupt the OS.
 ## Layout
 
 ```
-config.toml                    default tunables — copied to /data/config.toml on install
-bin/sync.py                    rclone pull -> Pillow downscale -> manifest.json
-bin/serve.py                   localhost web server (stdlib only)
-bin/cec-assert.sh              boot-time CEC power-on + active-source
-bin/start-kiosk.sh             cage + chromium launcher
-app/                           index.html, style.css, sun.js, slideshow.js
-systemd/                       the four units above
-scripts/make-data-partition.sh carve the writable /data partition out of the SD card
-scripts/install.sh             one-time Pi setup
-scripts/deploy.sh              rsync changes from your Mac + restart services
-docs/                          Google Drive service account, hardware, TV settings
+config.toml               default tunables — copied to /data/config.toml on install
+bin/sync.py               rclone pull -> Pillow downscale -> manifest.json
+bin/serve.py              localhost web server (stdlib only)
+bin/cec-assert.sh         boot-time CEC power-on + active-source
+bin/start-kiosk.sh        cage + chromium launcher
+app/                      index.html, style.css, sun.js, slideshow.js
+systemd/                  the four units above
+scripts/setup-storage.sh  size the OS partition + carve the writable /data partition
+scripts/install.sh        one-time Pi setup
+scripts/deploy.sh         rsync changes from your Mac + restart services
+docs/                     Google Drive service account, hardware, TV settings
 ```
 
 ## Setup (short version)
 
-1. **Flash + partition + TV** — [docs/tv-and-hardware.md](docs/tv-and-hardware.md).
-   Flash Pi OS Lite 64-bit with the auto-expand disabled (so there's room for
-   the `/data` partition), headless SSH/Wi-Fi via files on `bootfs`.
-2. ```bash
-   sudo apt install -y git parted
-   sudo git clone <repo> /opt/frame-tv-sync
-   sudo /opt/frame-tv-sync/scripts/make-data-partition.sh   # creates + mounts /data
+Full detail — including the cloud-init flash edits — in
+[docs/tv-and-hardware.md](docs/tv-and-hardware.md).
+
+1. **Flash** Pi OS Lite 64-bit (Imager customisation on: user, Wi-Fi, **Enable SSH**).
+   On `bootfs`: remove `resize` from `cmdline.txt` and append `growpart: {mode: "off"}`
+   + `resize_rootfs: false` to `user-data` — stops `/` expanding to fill the card.
+2. First boot, SSH in, then lay out storage (**run twice**, it reboots between):
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/kierenwade/Photoframe/main/scripts/setup-storage.sh -o /tmp/setup-storage.sh
+   sudo bash /tmp/setup-storage.sh     # edits table, reboots
+   sudo bash /tmp/setup-storage.sh     # grows /, formats + mounts /data
+   ```
+3. Install:
+   ```bash
+   sudo apt update && sudo apt install -y git
+   sudo git clone https://github.com/kierenwade/Photoframe.git /opt/frame-tv-sync
    sudo /opt/frame-tv-sync/scripts/install.sh
    ```
-3. **Google Drive** — [docs/gdrive-service-account.md](docs/gdrive-service-account.md):
-   create a service account, share the folder, drop `gdrive-sa.json` +
-   `rclone.conf` into `/data/secrets/`.
-4. Test the pull:
+4. **Google Drive** — [docs/gdrive-service-account.md](docs/gdrive-service-account.md):
+   service account, share the folder, drop `gdrive-sa.json` + `rclone.conf`
+   into `/data/secrets/`.
+5. Test the pull:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
-5. `sudo raspi-config` → enable **Overlay File System** (+ boot partition
+6. `sudo raspi-config` → enable **Overlay File System** (+ boot partition
    read-only), then reboot.
-6. Turn the smart plug off and on — photos should appear in ~30–60 s.
+7. Turn the smart plug off and on — photos should appear in ~30–60 s.
 
 ## Configuration
 
@@ -114,8 +123,10 @@ local work.
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
 | Config edits don't apply | edit `/data/config.toml`, not the repo copy; wait 30 s |
 | SD card corruption after power cuts | Overlay FS not enabled; check `findmnt /` shows `overlay` |
-| `make-data-partition.sh` says "no free space" | auto-expand wasn't disabled before first boot — re-flash, remove the `init=…firstboot` token from `cmdline.txt` |
+| `setup-storage.sh` says "Not enough free space" | `growpart`/`resize` weren't disabled before first boot — `/` filled the card. Re-flash with the `cmdline.txt` + `user-data` edits from `docs/tv-and-hardware.md` |
+| `apt` fails with "No space left" before `setup-storage.sh` | expected on the fresh image — run `setup-storage.sh` (twice) first; it needs only base tools |
 | `/data` missing after reboot | `findmnt /data`; check the `LABEL=frame-data` line in `/etc/fstab` |
+| `/` still tiny after `setup-storage.sh` | you only ran it once — run it again after the reboot to `resize2fs` |
 
 ## Maintenance
 
