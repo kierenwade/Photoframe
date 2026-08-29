@@ -104,8 +104,8 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 6. Add the two secret files (see `gdrive-service-account.md`), then test:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
 
-7. `sudo raspi-config` → **Performance → Overlay File System → Enable**, and
-   answer **yes** to making the boot partition read-only. Reboot.
+7. `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh` (read-only `/`, writable `/data`), then
+   `sudo reboot`.
 
 ### Changing things later
 
@@ -114,8 +114,9 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 - **`render.*`** (fit, size, quality): also edit `/data/config.toml`, but it
   takes effect on the next sync run (hourly) or `sudo systemctl start
   frame-sync`, and re-renders the whole library.
-- **Code / OS changes**: `sudo raspi-config` → disable Overlay FS → reboot →
-  `git pull` (or edit) → re-enable Overlay FS → reboot.
+- **Code / OS changes**: `sudo raspi-config nonint do_overlayfs 1 && sudo reboot`
+  (disable) → `git pull` / edit → `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh
+  && sudo reboot` (re-enable with `/data` kept writable).
 
 ## What this is / isn't
 

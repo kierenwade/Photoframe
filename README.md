@@ -73,8 +73,8 @@ Full detail — including the cloud-init flash edits — in
    into `/data/secrets/`.
 5. Test the pull:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
-6. `sudo raspi-config` → enable **Overlay File System** (+ boot partition
-   read-only), then reboot.
+6. `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh`, then
+   `sudo reboot` — read-only `/`, writable `/data`.
 7. Turn the smart plug off and on — photos should appear in ~30–60 s.
 
 ## Configuration
@@ -145,15 +145,13 @@ overlay.
 Update deliberately, every few months or when a security fix matters:
 
 ```bash
-sudo raspi-config        # Performance -> Overlay File System -> Disable
-sudo reboot
+sudo raspi-config nonint do_overlayfs 1 && sudo reboot   # disable overlay
 
 sudo apt update && sudo apt full-upgrade
-cd /opt/frame-tv-sync && sudo git pull
-sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r requirements.txt   # optional
+sudo -u frame git -C /opt/frame-tv-sync pull
+sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r /opt/frame-tv-sync/requirements.txt   # optional
 
-sudo raspi-config        # re-enable Overlay File System
-sudo reboot
+sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot   # re-enable (keeps /data writable)
 ```
 
 The box only makes outbound connections (Google Drive), so quarterly is plenty.
