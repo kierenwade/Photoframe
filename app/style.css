@@ -1,14 +1,13 @@
 :root {
   --matte: #EDEAE3;
   --bg: #000;
-  --border: 4vmin;
+  --mount: 3vmin;   /* even mount-board reveal around the photo */
   --fade: 1200ms;
 }
 
 * { box-sizing: border-box; }
 
-/* hide the pointer: `cursor: none` alone doesn't always beat the compositor
-   cursor, so also set a 1x1 transparent PNG as the cursor image */
+/* hide the pointer belt-and-braces (sway also does hide_cursor) */
 *, *::before, *::after {
   cursor: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==") 0 0, none !important;
 }
@@ -21,8 +20,7 @@ html, body {
   overflow: hidden;
 }
 
-/* everything visual lives in .stage so dimming (filter) and the
-   anti-burn-in nudge (transform) apply to the whole picture at once */
+/* dimming (filter) + anti-burn-in nudge (transform) apply to the whole picture */
 .stage {
   position: fixed;
   inset: 0;
@@ -30,30 +28,64 @@ html, body {
   will-change: filter, transform;
 }
 
-.matte {
+.slide {
   position: absolute;
-  inset: var(--border);
-  background: var(--matte);
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow:
-    inset 0 0 6vmin rgba(0, 0, 0, 0.22),
-    0 0 0 1px rgba(0, 0, 0, 0.18);
-}
-
-.photo {
-  position: absolute;
-  max-width: 92%;
-  max-height: 92%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
   opacity: 0;
   transition: opacity var(--fade) ease-in-out;
-  box-shadow: 0 1vmin 3vmin rgba(0, 0, 0, 0.28);
+  overflow: hidden;
 }
-.photo.show { opacity: 1; }
+.slide.show { opacity: 1; }
+
+/* ---- frame_style: matte ---- */
+.matte {
+  padding: var(--mount);
+  background: var(--matte);
+  line-height: 0;
+  max-width: 94vw;
+  max-height: 94vh;
+  box-shadow:
+    inset 0 0 6vmin rgba(0, 0, 0, 0.16),
+    0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.matte > img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: calc(94vw - 2 * var(--mount));
+  max-height: calc(94vh - 2 * var(--mount));
+  box-shadow: 0 1vmin 3vmin rgba(0, 0, 0, 0.25);
+}
+
+/* ---- frame_style: blur ---- */
+.slide > .blurbg {
+  position: absolute;
+  inset: -6%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(42px) brightness(0.55);
+  transform: scale(1.12);
+}
+.slide > img.center {
+  position: relative;
+  width: auto;
+  height: auto;
+  max-width: 90%;
+  max-height: 92%;
+  box-shadow: 0 2vmin 6vmin rgba(0, 0, 0, 0.55);
+}
+
+/* ---- frame_style: fill ---- */
+.slide > img.fill {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 .msg {
   position: fixed;

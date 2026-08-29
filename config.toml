@@ -20,9 +20,10 @@ jpeg_quality           = 88
 max_file_mb            = 60      # skip remote files bigger than this (videos etc.)
 
 [display]
-matte_color               = "#EDEAE3"   # mount-board colour behind the photo
-background_color           = "#000000"   # area outside the matte
-matte_min_border_pct       = 4           # matte inset from screen edge (vmin units)
+frame_style                = "matte"     # "matte" | "blur" | "fill"
+matte_color                = "#EDEAE3"   # mount-board colour (frame_style = matte)
+matte_mount_vmin           = 3           # even mount-board reveal around the photo
+background_color            = "#000000"   # screen area outside the picture
 anti_burnin_jitter_px      = 1
 anti_burnin_period_seconds = 90
 
