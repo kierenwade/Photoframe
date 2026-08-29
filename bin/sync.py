@@ -138,12 +138,15 @@ def render(im: Image.Image) -> Image.Image:
 def process() -> None:
     PROC.mkdir(parents=True, exist_ok=True)
 
-    if SIGFILE.exists() and SIGFILE.read_text().strip() != RENDER_SIG:
+    # re-render everything when the settings change *or* when the signature is
+    # missing (e.g. upgrading from a build that rendered differently)
+    if not SIGFILE.exists() or SIGFILE.read_text().strip() != RENDER_SIG:
         n = 0
         for p in PROC.glob("*.jpg"):
             p.unlink(missing_ok=True)
             n += 1
-        log(f"render settings changed -> re-rendering all ({n} cleared)")
+        if n:
+            log(f"render settings changed -> re-rendering all ({n} cleared)")
 
     originals = [
         p for p in ORIG.rglob("*")
