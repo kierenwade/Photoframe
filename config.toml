@@ -26,7 +26,7 @@ fit          = "cover"       # "cover" | "blur" | "pad"
                              #   blur  = whole photo centred over a blurred zoom of itself
                              #   pad   = whole photo centred on a solid colour
 pad_color    = "#000000"     # used when fit = pad
-border_px    = 48            # even border on all sides, in output pixels (0 = none)
+border_px    = 96            # even border on all sides, in output pixels (0 = none)
 border_color = "#EDEAE3"     # cream mount; any hex
 jpeg_quality = 88
 
