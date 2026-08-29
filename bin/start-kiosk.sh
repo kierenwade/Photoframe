@@ -29,8 +29,9 @@ for _ in $(seq 1 60); do
 done
 
 CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform \
---disable-gpu --no-sandbox --no-first-run --no-default-browser-check \
+--no-sandbox --no-first-run --no-default-browser-check \
 --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
+--disable-gpu-driver-bug-workarounds \
 --disable-features=Translate,TranslateUI --overscroll-history-navigation=0 \
 --disable-pinch --check-for-update-interval=31536000 \
 --autoplay-policy=no-user-gesture-required --force-device-scale-factor=1"
