@@ -29,6 +29,7 @@ for _ in $(seq 1 60); do
 done
 
 CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform \
+--disable-gpu --disable-gpu-compositing \
 --no-sandbox --no-first-run --no-default-browser-check \
 --noerrdialogs --disable-infobars --disable-session-crashed-bubble \
 --disable-features=Translate,TranslateUI,OptimizationHints,MediaRouter \
