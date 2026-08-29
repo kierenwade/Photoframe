@@ -46,7 +46,8 @@ CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatfor
 --disable-features=Translate,TranslateUI,OptimizationHints,MediaRouter \
 --overscroll-history-navigation=0 --disable-pinch \
 --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required \
---force-device-scale-factor=1 \
+--force-device-scale-factor=1 --mute-audio \
+--enable-logging=stderr --v=1 \
 --disable-background-networking --disable-sync --disable-component-update \
 --disable-breakpad --disable-domain-reliability --disable-crash-reporter \
 --password-store=basic --disk-cache-dir=/tmp/frame-cache --disk-cache-size=8388608"
