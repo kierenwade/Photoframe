@@ -64,6 +64,16 @@ CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatfor
 --disable-breakpad --disable-domain-reliability --disable-crash-reporter \
 --password-store=basic --disk-cache-dir=/tmp/frame-cache --disk-cache-size=8388608"
 
+# Put the browser command in its own script and have sway exec just the path.
+# (sway's config parser splits an inline `exec` line on commas, which mangles
+#  --disable-features=a,b,c and drops everything after the first comma.)
+BROWSER="$XDG_RUNTIME_DIR/frame-browser.sh"
+{
+  echo '#!/bin/sh'
+  echo "exec $CHROMIUM $CHROME_FLAGS \"$URL\""
+} > "$BROWSER"
+chmod +x "$BROWSER"
+
 SWAYCONF="$XDG_RUNTIME_DIR/frame-sway.conf"
 cat > "$SWAYCONF" <<EOF
 output * background #000000 solid_color
@@ -73,7 +83,7 @@ default_floating_border none
 xwayland disable
 for_window [app_id=".*"] fullscreen enable, border none
 for_window [title=".*"] fullscreen enable, border none
-exec $CHROMIUM $CHROME_FLAGS "$URL"
+exec $BROWSER
 EOF
 
 # Loop so a crash respawns the whole stack. A watchdog takes sway down if
