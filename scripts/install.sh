@@ -74,9 +74,7 @@ if ! grep -q 'consoleblank=0' /boot/firmware/cmdline.txt 2>/dev/null; then
 fi
 
 echo "==> disable apt/man-db background timers"
-# They can't achieve anything once Overlay FS is on (writes go to a RAM overlay
-# and vanish on reboot) and just cost RAM. Updates are done manually — see the
-# Maintenance section of the README.
+# Updates are done deliberately — see the Maintenance section of the README.
 systemctl disable --now apt-daily.timer apt-daily-upgrade.timer man-db.timer 2>/dev/null || true
 
 cat <<'EOF'
@@ -85,13 +83,9 @@ Done. Remaining manual steps:
   1. Create /data/secrets/gdrive-sa.json  (service-account key — see docs/gdrive-service-account.md)
   2. Create /data/secrets/rclone.conf     (see docs/gdrive-service-account.md)
   3. Test:   sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py
-  4. Tune /data/config.toml if you like (this copy stays editable after step 5).
-  5. Enable Overlay FS:  sudo raspi-config -> Performance -> Overlay File System
-     (also answer "yes" to making the boot partition read-only)
-  6. Reboot.
-
-To edit anything under / (e.g. update the code) later: raspi-config -> disable
-Overlay FS -> reboot -> edit -> re-enable -> reboot. Files under /data, including
-config.toml and photos, are always writable.
+  4. Tune /data/config.toml if you like.
+  5. Reboot.
+  6. Optional (only if the Pi shares the switched plug with the TV):
+       sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot
 
 EOF

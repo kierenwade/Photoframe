@@ -1,6 +1,6 @@
 # frame-tv-sync configuration (template).
-# install.sh copies this to /data/config.toml on the Pi — edit THAT copy; it's on
-# the writable partition so it stays editable with Overlay FS on. Changes are
+# install.sh copies this to /data/config.toml on the Pi — edit THAT copy.
+# Changes are
 # picked up live (slideshow re-reads every 30s; sync on its next run).
 
 [slideshow]

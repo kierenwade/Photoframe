@@ -18,14 +18,19 @@ thousands.
 ## Wiring
 
 ```
-Smart plug ── 2-way lead ──┬── Pi 4 PSU
-                           └── Frame One Connect box PSU
-
 Pi HDMI0 ── micro-HDMI→HDMI ── One Connect box  HDMI 1 (say)
 ```
 
-Both devices power up together when the plug turns on. The Pi's boot CEC
-script then wakes the TV and pulls the input to itself.
+Power options:
+
+- **Pi always on, own supply (simplest — recommended).** The TV can be on a
+  switched/scheduled plug; when it powers on it returns to the Pi's input via
+  the TV's "return to last input" setting (and CEC one-touch-play from the
+  Pi's live signal). Root filesystem stays normal read-write.
+- **Both on one switched plug.** They power up together and the Pi's boot CEC
+  script wakes the TV + selects the input — but the Pi then gets an unclean
+  shutdown every cycle, so run `scripts/enable-overlay.sh` to make `/`
+  read-only.
 
 ## TV settings (one time)
 
@@ -38,17 +43,18 @@ script then wakes the TV and pulls the input to itself.
 - If your firmware has *Settings → General → System Manager → (Start-screen /
   "return to last input")*, enable it as a belt-and-braces backup to CEC.
 
-## SD card layout (one card, two usable volumes)
+## SD card layout
 
-| # | Name | FS | Mount | Size | State after setup |
+| # | Name | FS | Mount | Size | Notes |
 |---|---|---|---|---|---|
-| 1 | `bootfs` | FAT32 | `/boot/firmware` | ~512 MB | read-only (rw only during OS updates) |
-| 2 | `rootfs` | ext4 | `/` | **8 GiB** (fixed) | **read-only** via Overlay FS — writes go to RAM, dropped on reboot |
-| 3 | `frame-data` | ext4 | `/data` | rest of card | **read-write** — photos, logs, secrets, live `config.toml` |
+| 1 | `bootfs` | FAT32 | `/boot/firmware` | ~512 MB | |
+| 2 | `rootfs` | ext4 | `/` | **8 GiB** (fixed) | the OS; read-only if you run `enable-overlay.sh` |
+| 3 | `frame-data` | ext4 | `/data` | rest of card | photos, logs, secrets, live `config.toml` |
 
-`scripts/setup-storage.sh` builds this. Pulling the plug can't corrupt
-partitions 1–2. Partition 3 uses ext4 journalling + `errors=remount-ro`; worst
-case is losing the last few photos pulled, which re-sync from Drive next run.
+`scripts/setup-storage.sh` builds this. The `/data` split keeps high-churn
+photo/render writes off the OS partition; it mounts with ext4 journalling +
+`errors=remount-ro`, so worst case after an unclean power loss is re-syncing the
+last few photos from Drive.
 
 ## Pi OS setup
 
@@ -104,19 +110,23 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 6. Add the two secret files (see `gdrive-service-account.md`), then test:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
 
-7. `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh` (read-only `/`, writable `/data`), then
-   `sudo reboot`.
+7. `sudo reboot`. The photo should come up on the TV on its own.
+
+8. *Optional* — only if the Pi shares the switched plug with the TV:
+   `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` makes `/`
+   read-only (`/data` stays writable) so routine power cuts can't corrupt the OS.
 
 ### Changing things later
 
 - **Slideshow / dimming settings** (`interval_seconds`, `dimming.*`, …): edit
   `/data/config.toml` — the app re-reads it within 30 s.
 - **`render.*`** (fit, size, quality): also edit `/data/config.toml`, but it
-  takes effect on the next sync run (hourly) or `sudo systemctl start
-  frame-sync`, and re-renders the whole library.
-- **Code / OS changes**: `sudo raspi-config nonint do_overlayfs 1 && sudo reboot`
-  (disable) → `git pull` / edit → `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh
-  && sudo reboot` (re-enable with `/data` kept writable).
+  takes effect on the next sync run or `sudo systemctl start frame-sync`, and
+  re-renders the whole library.
+- **Code / OS changes**: `sudo -u frame git -C /opt/frame-tv-sync pull`,
+  `sudo apt full-upgrade`, then `sudo reboot`. If you enabled Overlay FS,
+  disable it first (`sudo raspi-config nonint do_overlayfs 1 && sudo reboot`)
+  and re-run `enable-overlay.sh` after.
 
 ## What this is / isn't
 

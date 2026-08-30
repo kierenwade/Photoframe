@@ -27,9 +27,8 @@ PORT = int(os.environ.get("FRAME_PORT", "8080"))
 
 
 def config_path() -> Path:
-    """Live config lives on the writable data partition on the Pi
-    (/data/config.toml), so it stays editable with Overlay FS enabled.
-    Falls back to the repo copy for local dev."""
+    """Live config lives on the /data partition on the Pi (/data/config.toml);
+    the repo copy is the local-dev fallback."""
     for cand in (os.environ.get("FRAME_CONFIG"), "/data/config.toml"):
         if cand and Path(cand).is_file():
             return Path(cand)

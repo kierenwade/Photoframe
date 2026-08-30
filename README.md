@@ -12,17 +12,21 @@ evening dimming and anti burn-in jitter.
 ## How it works
 
 ```
-Smart plug on ─► Pi boots (read-only OS) ─► CEC: TV on + select this input
+Pi (always on) ─► CEC at boot: TV on + select this input
                      │
    frame-serve  ─────┤  localhost:8080  (config.json, manifest.json, /photos/*)
    kiosk (tty1)  ────┤  sway + Chromium --kiosk  ─►  app/  slideshow
    frame-sync   ─────┘  hourly: rclone (Drive, read-only) ─► downscale ─► manifest.json
 ```
 
-**One SD card, three partitions:** `bootfs` (FAT32) + `rootfs` (ext4, **read-only**
-via Overlay FS) + `frame-data` (ext4, **read-write**, mounted at `/data` — holds
-photos, logs, secrets and the live `config.toml`). Yanking the smart plug can't
-corrupt the OS.
+**One SD card, three partitions:** `bootfs` (FAT32) + `rootfs` (ext4, `/`) +
+`frame-data` (ext4, mounted at `/data` — photos, logs, secrets, live
+`config.toml`). The `/data` split keeps the high-churn photo/render writes off
+the OS partition.
+
+Optionally make `/` read-only ([scripts/enable-overlay.sh](scripts/enable-overlay.sh))
+if the Pi shares the switched plug with the TV and gets power-cut routinely.
+Not needed when the Pi runs on its own always-on supply.
 
 | Unit | Type | Job |
 |---|---|---|
@@ -73,16 +77,17 @@ Full detail — including the cloud-init flash edits — in
    into `/data/secrets/`.
 5. Test the pull:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
-6. `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh`, then
-   `sudo reboot` — read-only `/`, writable `/data`.
-7. Turn the smart plug off and on — photos should appear in ~30–60 s.
+6. Reboot. Photos should appear on the TV in ~30–60 s.
+7. *Optional:* if the Pi shares the switched plug with the TV, harden with
+   `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` (read-only
+   `/`, `/data` stays writable). Skip it if the Pi has its own always-on supply.
 
 ## Configuration
 
-On the Pi the live config is **`/data/config.toml`** (on the writable partition,
-so it stays editable with Overlay FS on). The repo's [`config.toml`](config.toml)
-is just the template that gets copied there on install. The slideshow re-reads it
-every 30 s, so most changes apply without a restart:
+On the Pi the live config is **`/data/config.toml`** (on the `/data` partition).
+The repo's [`config.toml`](config.toml) is just the template copied there on
+install. The slideshow re-reads it every 30 s, so most changes apply without a
+restart:
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -128,7 +133,7 @@ local work.
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
 | Restart the kiosk | `sudo pkill -x sway` (never `pkill -f chromium` — it also kills the launcher). |
 | Config edits don't apply | edit `/data/config.toml`, not the repo copy; wait 30 s |
-| SD card corruption after power cuts | Overlay FS not enabled; check `findmnt /` shows `overlay` |
+| SD card corrupted after a power loss | rare on a decent card; if worried, run `scripts/enable-overlay.sh` or boot from a USB SSD |
 | `setup-storage.sh` says "Not enough free space" | `growpart`/`resize` weren't disabled before first boot — `/` filled the card. Re-flash with the `cmdline.txt` + `user-data` edits from `docs/tv-and-hardware.md` |
 | `apt` fails with "No space left" before `setup-storage.sh` | expected on the fresh image — run `setup-storage.sh` (twice) first; it needs only base tools |
 | `/data` missing after reboot | `findmnt /data`; check the `LABEL=frame-data` line in `/etc/fstab` |
@@ -136,25 +141,22 @@ local work.
 
 ## Maintenance
 
-Nothing updates itself. Raspberry Pi OS doesn't auto-upgrade packages, and once
-Overlay FS is on the root filesystem is read-only anyway (`apt` writes would land
-in a RAM overlay and vanish on reboot). `install.sh` also disables the
-`apt-daily` / `man-db` background timers since they can't achieve anything under
-overlay.
-
-Update deliberately, every few months or when a security fix matters:
+Nothing updates itself — Raspberry Pi OS doesn't auto-upgrade packages, and
+`install.sh` disables the `apt-daily` / `man-db` background timers. Update
+deliberately, every few months or when a security fix matters:
 
 ```bash
-sudo raspi-config nonint do_overlayfs 1 && sudo reboot   # disable overlay
-
 sudo apt update && sudo apt full-upgrade
 sudo -u frame git -C /opt/frame-tv-sync pull
 sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r /opt/frame-tv-sync/requirements.txt   # optional
-
-sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot   # re-enable (keeps /data writable)
+sudo reboot
 ```
 
 The box only makes outbound connections (Google Drive), so quarterly is plenty.
+
+If you ran `scripts/enable-overlay.sh` (read-only `/`), bracket the above with
+`sudo raspi-config nonint do_overlayfs 1 && sudo reboot` before and
+`sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` after.
 
 To change **slideshow settings** you do *not* need any of this — edit
 `/data/config.toml` (writable under overlay) and the app picks it up within 30 s.

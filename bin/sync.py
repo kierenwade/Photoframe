@@ -37,8 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def _config_path() -> Path:
-    # live config on the writable data partition (editable with Overlay FS on);
-    # repo copy is the fallback for local dev
+    # live config on the /data partition; repo copy is the local-dev fallback
     for cand in (os.environ.get("FRAME_CONFIG"), "/data/config.toml"):
         if cand and Path(cand).is_file():
             return Path(cand)
