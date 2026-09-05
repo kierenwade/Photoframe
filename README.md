@@ -75,10 +75,16 @@ Full detail — including the cloud-init flash edits — in
 4. **Google Drive** — [docs/gdrive-service-account.md](docs/gdrive-service-account.md):
    service account, share the folder, drop `gdrive-sa.json` + `rclone.conf`
    into `/data/secrets/`.
-5. Test the pull:
+5. **If your screen isn't 16:9** (e.g. a 1920×1200 monitor), set the render size
+   to match the panel — otherwise `object-fit: cover` crops the sides and the
+   border with them:
+   ```bash
+   sudo -u frame sed -i 's/^width .*/width        = 1920/; s/^height .*/height       = 1200/' /data/config.toml
+   ```
+6. Test the pull (also re-renders after step 5):
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
-6. Reboot. Photos should appear on the TV in ~30–60 s.
-7. *Optional:* if the Pi shares the switched plug with the TV, harden with
+7. Reboot. Photos should appear on the TV in ~30–60 s.
+8. *Optional:* if the Pi shares the switched plug with the TV, harden with
    `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` (read-only
    `/`, `/data` stays writable). Skip it if the Pi has its own always-on supply.
 
@@ -98,7 +104,7 @@ restart:
 | `sync.remote` | `gdrive:` | rclone remote (folder set by `root_folder_id`) |
 | `sync.interval_minutes` | `60` | also set `frame-sync.timer` `OnUnitActiveSec` to match |
 | `sync.max_file_mb` | `60` | skip remote files larger than this |
-| `render.width` / `height` | `1920` / `1080` | output size — set to your TV panel |
+| `render.width` / `height` | `1920` / `1080` | **set to your panel's exact resolution** — a mismatch makes `cover` crop the sides |
 | `render.fit` | `cover` | `blur` (photo over a blurred zoom of itself), `cover` (fill + crop), `pad` (solid colour) |
 | `render.pad_color` | `#000000` | used when `fit = pad` |
 | `render.border_px` / `border_color` | `96` / `#EDEAE3` | even border on all sides (output px); `0` = none |

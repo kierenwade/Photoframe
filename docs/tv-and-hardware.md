@@ -107,10 +107,23 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
    sudo /opt/frame-tv-sync/scripts/install.sh
    ```
 
-6. Add the two secret files (see `gdrive-service-account.md`), then test:
+6. Add the two secret files (see `gdrive-service-account.md`).
+
+7. **If the screen isn't 16:9** (a 1920×1200 monitor, an ultrawide, a 4K
+   panel…), set the render size to the panel's exact resolution — otherwise the
+   slideshow's `object-fit: cover` scales the image up and crops the sides
+   (border included):
+   ```bash
+   # check the panel's resolution
+   fbset -s 2>/dev/null | grep geometry || cat /sys/class/graphics/fb0/virtual_size
+   # then, e.g. for 1920x1200:
+   sudo -u frame sed -i 's/^width .*/width        = 1920/; s/^height .*/height       = 1200/' /data/config.toml
+   ```
+
+8. Test / render:
    `sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py`
 
-7. `sudo reboot`. The photo should come up on the TV on its own.
+9. `sudo reboot`. The photo should come up on the TV on its own.
 
 8. *Optional* — only if the Pi shares the switched plug with the TV:
    `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` makes `/`
