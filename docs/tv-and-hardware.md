@@ -125,9 +125,11 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 
 9. `sudo reboot`. The photo should come up on the TV on its own.
 
-8. *Optional* — only if the Pi shares the switched plug with the TV:
-   `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` makes `/`
-   read-only (`/data` stays writable) so routine power cuts can't corrupt the OS.
+10. Once it's confirmed working, make the root read-only:
+    `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot`
+    — `/` read-only (power cuts can't corrupt the OS), `/data` stays writable.
+    Do this **last**; `/opt`, `apt` and `git pull` are frozen until you disable
+    it (`sudo raspi-config nonint do_overlayfs 1 && sudo reboot`).
 
 ### Changing things later
 
