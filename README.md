@@ -167,5 +167,10 @@ sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot # re-enable
 
 The box only makes outbound connections (Google Drive), so quarterly is plenty.
 
+Not part of this project, but if you ever run `rpi-eeprom-update` manually:
+`/boot/firmware` mounts read-only by default on this OS regardless of Overlay
+FS, so it needs `sudo mount -o remount,rw /boot/firmware` first — same as
+editing `cmdline.txt`.
+
 To change **slideshow settings** you do *not* need any of this — edit
 `/data/config.toml` (writable under overlay) and the app picks it up within 30 s.
