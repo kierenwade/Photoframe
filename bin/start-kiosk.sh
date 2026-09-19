@@ -50,6 +50,13 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# Keep Chromium's profile off the root partition. It's rewritten continuously
+# while running (prefs, Local State, IndexedDB, etc.) - on /data that ongoing
+# write churn doesn't touch / at all, so an unclean shutdown has nothing there
+# to interrupt.
+PROFILE_DIR=/data/chromium-profile
+mkdir -p "$PROFILE_DIR" 2>/dev/null || true
+
 CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatform \
 --disable-gpu --disable-gpu-compositing \
 --no-sandbox --no-first-run --no-default-browser-check \
@@ -62,7 +69,8 @@ CHROME_FLAGS="--kiosk --ozone-platform=wayland --enable-features=UseOzonePlatfor
 --enable-logging=stderr \
 --disable-background-networking --disable-sync --disable-component-update \
 --disable-breakpad --disable-domain-reliability --disable-crash-reporter \
---password-store=basic --disk-cache-dir=/tmp/frame-cache --disk-cache-size=8388608"
+--password-store=basic --disk-cache-dir=/tmp/frame-cache --disk-cache-size=8388608 \
+--user-data-dir=$PROFILE_DIR"
 
 # Put the browser command in its own script and have sway exec just the path.
 # (sway's config parser splits an inline `exec` line on commas, which mangles

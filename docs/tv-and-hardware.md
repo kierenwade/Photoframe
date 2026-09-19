@@ -49,12 +49,19 @@ Power options:
 |---|---|---|---|---|---|
 | 1 | `bootfs` | FAT32 | `/boot/firmware` | ~512 MB | |
 | 2 | `rootfs` | ext4 | `/` | **8 GiB** (fixed) | the OS; read-only if you run `enable-overlay.sh` |
-| 3 | `frame-data` | ext4 | `/data` | rest of card | photos, logs, secrets, live `config.toml` |
+| 3 | `frame-data` | ext4 | `/data` | rest of card | photos, logs, secrets, live `config.toml`, Chromium's profile |
 
 `scripts/setup-storage.sh` builds this. The `/data` split keeps high-churn
 photo/render writes off the OS partition; it mounts with ext4 journalling +
 `errors=remount-ro`, so worst case after an unclean power loss is re-syncing the
 last few photos from Drive.
+
+Chromium's profile (`--user-data-dir`, set in `start-kiosk.sh`) also lives on
+`/data` instead of the default `~/.config/chromium` on `/`. It's the one thing
+that writes continuously while the kiosk runs, so moving it off the OS
+partition keeps `/` almost completely idle — useful whether or not you run
+`enable-overlay.sh`, since it shrinks the window where an unclean power loss
+could catch `/` mid-write.
 
 ## Pi OS setup
 

@@ -34,7 +34,7 @@ if ! mountpoint -q /data; then
   echo "!! Run scripts/setup-storage.sh (twice, with a reboot between) first." >&2
   exit 1
 fi
-mkdir -p /data/photos /data/secrets /data/logs
+mkdir -p /data/photos /data/secrets /data/logs /data/chromium-profile
 # live, editable config on the writable partition (survives Overlay FS)
 [[ -f /data/config.toml ]] || cp "$APP_DIR/config.toml" /data/config.toml
 chown -R "$APP_USER":"$APP_USER" /data

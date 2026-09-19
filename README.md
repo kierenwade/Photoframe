@@ -21,8 +21,11 @@ Pi (always on) ─► CEC at boot: TV on + select this input
 
 **One SD card, three partitions:** `bootfs` (FAT32) + `rootfs` (ext4, `/` —
 **read-only** via Overlay FS) + `frame-data` (ext4, mounted at `/data` — photos,
-logs, secrets, live `config.toml`). The read-only root means an unclean power
-loss can't corrupt the OS; `/data` stays writable
+logs, secrets, live `config.toml`, and Chromium's profile). Chromium's profile
+is kept on `/data` (`--user-data-dir`) rather than the default `~/.config` on
+`/`, since it's rewritten constantly while the kiosk runs — this keeps `/`
+almost entirely idle. The read-only root means an unclean power loss can't
+corrupt the OS; `/data` stays writable
 ([scripts/enable-overlay.sh](scripts/enable-overlay.sh) forces
 `overlayroot=…:recurse=0` for this).
 
