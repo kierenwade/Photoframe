@@ -29,7 +29,10 @@ Get the folder id from its URL:
 sudo install -o frame -g frame -m 600 ~/frame-tv-pi-*.json /data/secrets/gdrive-sa.json
 ```
 
-Create `/data/secrets/rclone.conf`:
+Create `/data/secrets/rclone.conf` — **⚠️ `root_folder_id` below is a
+placeholder, not a real value.** Replace `1AbCd...XYZ` with the ID you copied
+in step 2 before saving. A leftover placeholder produces a Google API `404`
+error that looks like an auth problem but isn't one:
 
 ```ini
 [gdrive]
@@ -44,10 +47,24 @@ sudo chown frame:frame /data/secrets/rclone.conf
 sudo chmod 600 /data/secrets/rclone.conf
 ```
 
-## 4. Test
+## 4. Test — do this before anything else touches Drive
 
 ```bash
 rclone --config /data/secrets/rclone.conf lsd gdrive:
+```
+
+**This must run with no output and no error before you continue.** If it
+prints `googleapi: Error 404: File not found: ., notFound`, `root_folder_id`
+in `rclone.conf` is still the placeholder (or the wrong ID, or the folder
+wasn't shared with the service account's email) — fix that first:
+
+```bash
+sudo cat /data/secrets/rclone.conf   # check root_folder_id against the Drive URL
+```
+
+Once `lsd` is clean:
+
+```bash
 sudo -u frame /opt/frame-tv-sync/.venv/bin/python /opt/frame-tv-sync/bin/sync.py
 ls /data/photos/processed | head
 ```
