@@ -69,6 +69,21 @@ Current Raspberry Pi OS (Trixie) images configure first boot with **cloud-init**
 and both a `resize` kernel arg *and* cloud-init's `growpart` will expand `/` to
 fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 
+⚠️ **Reusing a physical SD card that was previously flashed for a *different*
+device?** Raspberry Pi Imager only overwrites the OS image's own sectors —
+it does not wipe the rest of the card. `setup-storage.sh` and `install.sh`
+deliberately *reuse* an existing `frame-data` partition rather than
+reformatting it (so a genuine OS reinstall on the *same* device keeps its
+photos). Reusing the card for another device means you inherit the old
+`/data` wholesale — old secrets, old `config.toml`, and a stale Chromium
+profile lock that makes the kiosk crash-loop with `The profile appears to be
+in use by another computer (<old-hostname>)`. If the card previously belonged
+to a different device, fully erase it first:
+```bash
+diskutil eraseDisk FAT32 SDCARD MBRFormat /dev/diskN   # macOS, replace diskN
+```
+before Phase 1's flash, or just use a different card.
+
 1. **Flash** Raspberry Pi OS **Lite 64-bit** with Raspberry Pi Imager. In the
    customisation dialog **do** set: hostname, username + password, Wi-Fi, locale,
    and **tick "Enable SSH" (password auth)**.
