@@ -200,7 +200,28 @@ sudo apt update && sudo apt full-upgrade
 sudo dpkg --configure -a   # in case anything failed mid-upgrade; safe if nothing pending
 sudo -u frame git -C /opt/frame-tv-sync pull
 sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r /opt/frame-tv-sync/requirements.txt   # optional
+```
 
+**If `apt full-upgrade` installed a new kernel** (`linux-image-...` in its
+output), reboot once **now**, on the still-writable filesystem, and confirm it
+comes up cleanly before doing anything else:
+
+```bash
+sudo reboot
+```
+
+```bash
+findmnt -n -o FSTYPE /                        # still ext4 — you haven't re-locked yet
+ssh <user>@<hostname>.local                   # can you get back in at all?
+```
+
+Don't chain this reboot together with re-enabling the overlay — if the new
+kernel *and* the read-only root change both happen before you've confirmed
+anything, and something looks wrong afterwards, you can't tell which change
+caused it, and recovery is harder with root already locked. Only once you've
+confirmed it's back up normally:
+
+```bash
 sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot # re-enable
 ```
 
