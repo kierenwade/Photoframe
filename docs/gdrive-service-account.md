@@ -50,7 +50,7 @@ sudo chmod 600 /data/secrets/rclone.conf
 ## 4. Test — do this before anything else touches Drive
 
 ```bash
-rclone --config /data/secrets/rclone.conf lsd gdrive:
+sudo rclone --config /data/secrets/rclone.conf lsd gdrive:
 ```
 
 **This must run with no output and no error before you continue.** If it

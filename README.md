@@ -141,7 +141,7 @@ local work.
 | Pi unreachable (no ssh, no ping) after `apt full-upgrade` | A networking package (`wpasupplicant`/NetworkManager) restarting mid-upgrade can drop Wi-Fi *and* wipe the stored secret. Needs physical keyboard access (kiosk only occupies tty1 — `Ctrl+Alt+F2` for a local login) → `sudo nmtui` → Activate/Edit the connection → re-enter the Wi-Fi password. Prefer Ethernet for `apt full-upgrade` when you can, to avoid this entirely. After reconnecting: `sudo dpkg --configure -a` before continuing the upgrade |
 | Black screen, no photos | `cat /data/logs/kiosk.log`; is `frame-serve` up? `curl 127.0.0.1:8080/manifest.json` |
 | Black screen *with* a cursor | compositor up, Chromium not painting — `start-kiosk.sh` uses `--disable-gpu --no-sandbox` + positional URL. Pointer is hidden via sway `hide_cursor` |
-| "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `rclone --config /data/secrets/rclone.conf lsd gdrive:` |
+| "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `sudo rclone --config /data/secrets/rclone.conf lsd gdrive:` |
 | TV stays off / wrong input | `docs/tv-and-hardware.md` Anynet+; `cat /data/logs/cec.log`; try `echo 'as' \| cec-client -s -d 1` |
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
 | Restart the kiosk | `sudo pkill -x sway` (never `pkill -f chromium` — it also kills the launcher). |
