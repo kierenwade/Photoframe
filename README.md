@@ -137,6 +137,7 @@ local work.
 
 | Symptom | Check |
 |---|---|
+| `apt full-upgrade` fails with `cp: cannot create regular file '/boot/firmware/...': Read-only file system` | `/boot/firmware` is read-only independent of Overlay FS — `sudo mount -o remount,rw /boot/firmware`, then `sudo dpkg --configure -a` to retry, then re-run `apt full-upgrade` |
 | Pi unreachable (no ssh, no ping) after `apt full-upgrade` | A networking package (`wpasupplicant`/NetworkManager) restarting mid-upgrade can drop Wi-Fi *and* wipe the stored secret. Needs physical keyboard access (kiosk only occupies tty1 — `Ctrl+Alt+F2` for a local login) → `sudo nmtui` → Activate/Edit the connection → re-enter the Wi-Fi password. Prefer Ethernet for `apt full-upgrade` when you can, to avoid this entirely. After reconnecting: `sudo dpkg --configure -a` before continuing the upgrade |
 | Black screen, no photos | `cat /data/logs/kiosk.log`; is `frame-serve` up? `curl 127.0.0.1:8080/manifest.json` |
 | Black screen *with* a cursor | compositor up, Chromium not painting — `start-kiosk.sh` uses `--disable-gpu --no-sandbox` + positional URL. Pointer is hidden via sway `hide_cursor` |
@@ -178,6 +179,16 @@ sudo sed -i 's/overlayroot=[^ ]*/overlayroot=disabled/' /boot/firmware/cmdline.t
 sudo reboot
 ```
 
+`/boot/firmware` is **also** read-only by default, separately from Overlay
+FS — whenever a kernel or firmware package updates (routine, not an edge
+case), `apt full-upgrade` needs to write there and fails with a wall of
+`cp: cannot create regular file ... Read-only file system` otherwise. Remount
+it too before updating:
+
+```bash
+sudo mount -o remount,rw /boot/firmware
+```
+
 Then do the actual update. **If you're on Wi-Fi, plug in Ethernet first if you
 can** — `apt full-upgrade` can pull in `wpasupplicant`/NetworkManager updates
 whose postinst restarts the interface, which can drop *and never restore* the
@@ -186,11 +197,15 @@ needs physical keyboard access, see Troubleshooting):
 
 ```bash
 sudo apt update && sudo apt full-upgrade
+sudo dpkg --configure -a   # in case anything failed mid-upgrade; safe if nothing pending
 sudo -u frame git -C /opt/frame-tv-sync pull
 sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r /opt/frame-tv-sync/requirements.txt   # optional
 
 sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot # re-enable
 ```
+
+(no need to remount `/boot/firmware` back to read-only by hand — the reboot
+does that automatically, per its own `fstab` entry)
 
 If the session drops mid-upgrade and doesn't come back, don't reboot in a
 panic — try reconnecting a few times first, then see the Troubleshooting row
