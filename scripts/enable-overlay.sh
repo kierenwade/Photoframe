@@ -5,6 +5,10 @@
 # also freezes the frame-data partition (writes to /data would be RAM-only and
 # lost on reboot). We force recurse=0 so only / is read-only.
 #
+# Safe to re-run, including on a device where overlay was previously disabled
+# by setting `overlayroot=disabled` in cmdline.txt (the standard way to turn
+# it off for maintenance) - this normalises whatever value is there.
+#
 #   sudo /opt/frame-tv-sync/scripts/enable-overlay.sh
 #   sudo reboot
 set -euo pipefail
@@ -12,8 +16,11 @@ set -euo pipefail
 [[ $EUID -eq 0 ]] || { echo "run with sudo" >&2; exit 1; }
 CMDLINE=/boot/firmware/cmdline.txt
 
-if ! grep -q 'overlayroot=' "$CMDLINE"; then
-  echo "== enabling Overlay FS via raspi-config =="
+# The overlayroot *package* (and its initramfs hook) only needs installing
+# once; /etc/overlayroot.conf existing is proof it already is, regardless of
+# what cmdline.txt currently says (disabled, tmpfs, or absent).
+if [[ ! -f /etc/overlayroot.conf ]]; then
+  echo "== installing overlayroot via raspi-config =="
   raspi-config nonint do_overlayfs 0 || {
     echo "!! nonint call failed — enable it in 'sudo raspi-config' → Performance →" >&2
     echo "!! Overlay File System, do NOT reboot, then run this script again." >&2
@@ -22,8 +29,12 @@ if ! grep -q 'overlayroot=' "$CMDLINE"; then
 fi
 
 mount -o remount,rw /boot/firmware
-grep -q 'recurse=0' "$CMDLINE" ||
-  sed -i 's/overlayroot=tmpfs/overlayroot=tmpfs:recurse=0/' "$CMDLINE"
+if grep -q 'overlayroot=' "$CMDLINE"; then
+  # replace whatever's there now (disabled, tmpfs, tmpfs:recurse=1, ...)
+  sed -i -E 's/overlayroot=[^ ]*/overlayroot=tmpfs:recurse=0/' "$CMDLINE"
+else
+  sed -i 's/$/ overlayroot=tmpfs:recurse=0/' "$CMDLINE"
+fi
 mount -o remount,ro /boot/firmware || true
 
 echo
