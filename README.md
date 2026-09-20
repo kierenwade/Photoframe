@@ -137,6 +137,7 @@ local work.
 
 | Symptom | Check |
 |---|---|
+| Pi unreachable (no ssh, no ping) after `apt full-upgrade` | A networking package (`wpasupplicant`/NetworkManager) restarting mid-upgrade can drop Wi-Fi *and* wipe the stored secret. Needs physical keyboard access (kiosk only occupies tty1 — `Ctrl+Alt+F2` for a local login) → `sudo nmtui` → Activate/Edit the connection → re-enter the Wi-Fi password. Prefer Ethernet for `apt full-upgrade` when you can, to avoid this entirely. After reconnecting: `sudo dpkg --configure -a` before continuing the upgrade |
 | Black screen, no photos | `cat /data/logs/kiosk.log`; is `frame-serve` up? `curl 127.0.0.1:8080/manifest.json` |
 | Black screen *with* a cursor | compositor up, Chromium not painting — `start-kiosk.sh` uses `--disable-gpu --no-sandbox` + positional URL. Pointer is hidden via sway `hide_cursor` |
 | "Waiting for photos…" forever | `journalctl -u frame-sync -b`; `rclone --config /data/secrets/rclone.conf lsd gdrive:` |
@@ -177,7 +178,11 @@ sudo sed -i 's/overlayroot=[^ ]*/overlayroot=disabled/' /boot/firmware/cmdline.t
 sudo reboot
 ```
 
-Then do the actual update:
+Then do the actual update. **If you're on Wi-Fi, plug in Ethernet first if you
+can** — `apt full-upgrade` can pull in `wpasupplicant`/NetworkManager updates
+whose postinst restarts the interface, which can drop *and never restore* the
+very Wi-Fi connection your SSH session depends on (seen in practice — recovery
+needs physical keyboard access, see Troubleshooting):
 
 ```bash
 sudo apt update && sudo apt full-upgrade
@@ -186,6 +191,10 @@ sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r /opt/frame-tv-sync/requireme
 
 sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot # re-enable
 ```
+
+If the session drops mid-upgrade and doesn't come back, don't reboot in a
+panic — try reconnecting a few times first, then see the Troubleshooting row
+above for recovery.
 
 The box only makes outbound connections (Google Drive), so quarterly is plenty.
 
