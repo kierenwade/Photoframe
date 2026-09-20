@@ -59,8 +59,11 @@ Full detail — including the cloud-init flash edits — in
 [docs/tv-and-hardware.md](docs/tv-and-hardware.md).
 
 1. **Flash** Pi OS Lite 64-bit (Imager customisation on: user, Wi-Fi, **Enable SSH**).
-   On `bootfs`: remove `resize` from `cmdline.txt` and append `growpart: {mode: "off"}`
-   + `resize_rootfs: false` to `user-data` — stops `/` expanding to fill the card.
+   Re-insert the card; if `/Volumes/bootfs` doesn't auto-mount (flaky readers do
+   this), `diskutil list external physical` then `diskutil mount diskNsM` on the
+   ~500MB FAT partition. On `bootfs`: remove `resize` from `cmdline.txt` and
+   append `growpart: {mode: "off"}` + `resize_rootfs: false` to `user-data` —
+   stops `/` expanding to fill the card.
 2. First boot, SSH in, then lay out storage (**run twice**, it reboots between):
    ```bash
    curl -fsSL https://raw.githubusercontent.com/kierenwade/Photoframe/main/scripts/setup-storage.sh -o /tmp/setup-storage.sh

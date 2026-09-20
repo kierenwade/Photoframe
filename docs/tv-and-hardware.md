@@ -73,7 +73,18 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
    customisation dialog **do** set: hostname, username + password, Wi-Fi, locale,
    and **tick "Enable SSH" (password auth)**.
 
-2. Re-insert the card; macOS mounts **bootfs**. In that volume:
+2. Re-insert the card; macOS should mount it as **bootfs**. If `/Volumes/bootfs`
+   doesn't appear (flaky card readers do this — the card keeps re-enumerating),
+   mount it by hand:
+   ```bash
+   diskutil list external physical
+   # find the ~500 MB Windows_FAT_32 partition, e.g. disk4s1, then:
+   diskutil mount disk4s1
+   ```
+   If it never shows up at all in `diskutil list`, reseat the card in the
+   reader and the reader in a direct USB port (no hub).
+
+   In that volume:
 
    - Remove the `resize` token from `cmdline.txt` (stays one line):
      ```bash
