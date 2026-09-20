@@ -156,9 +156,14 @@ fill the whole card. We disable both so `setup-storage.sh` can lay out `/data`.
 - **`render.*`** (fit, size, quality): also edit `/data/config.toml`, but it
   takes effect on the next sync run or `sudo systemctl start frame-sync`, and
   re-renders the whole library.
-- **Code / OS changes** (root is read-only, so overlay off first):
+- **Code / OS changes** (root is read-only, so overlay off first) — see the
+  full README **Maintenance** section for the disable → verify → fallback →
+  re-enable cycle. Short version:
   ```bash
   sudo raspi-config nonint do_overlayfs 1 && sudo reboot
+  findmnt -n -o FSTYPE /   # must say ext4 — this command can silently no-op;
+                           # if it still says overlay, remount /boot/firmware
+                           # rw and set overlayroot=disabled in cmdline.txt by hand
   sudo -u frame git -C /opt/frame-tv-sync pull      # and/or sudo apt full-upgrade, edit files
   sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot
   ```

@@ -144,7 +144,7 @@ local work.
 | Photos look over-bright at night | lower `dimming.night_brightness`; verify `latitude`/`longitude` |
 | Restart the kiosk | `sudo pkill -x sway` (never `pkill -f chromium` — it also kills the launcher). |
 | Config edits don't apply | edit `/data/config.toml`, not the repo copy; wait 30 s |
-| Edits to `/opt`, `apt`, `git pull` silently vanish on reboot | Overlay FS is on — `sudo raspi-config nonint do_overlayfs 1 && sudo reboot`, make the change, then `sudo /opt/frame-tv-sync/scripts/enable-overlay.sh && sudo reboot` |
+| Edits to `/opt`, `apt`, `git pull` silently vanish on reboot | Overlay FS is on — see **Maintenance** below for the disable/verify/re-enable cycle |
 | `/data` frozen too (writes lost on reboot) | overlay was enabled without `recurse=0` — re-run `scripts/enable-overlay.sh` (it fixes the `cmdline.txt`) and reboot |
 | `setup-storage.sh` says "Not enough free space" | `growpart`/`resize` weren't disabled before first boot — `/` filled the card. Re-flash with the `cmdline.txt` + `user-data` edits from `docs/tv-and-hardware.md` |
 | `apt` fails with "No space left" before `setup-storage.sh` | expected on the fresh image — run `setup-storage.sh` (twice) first; it needs only base tools |
@@ -160,7 +160,26 @@ Update deliberately, every few months or when a security fix matters:
 
 ```bash
 sudo raspi-config nonint do_overlayfs 1 && sudo reboot          # disable overlay
+```
 
+After reboot, **confirm it actually took** — this command has been known to
+silently no-op on this OS:
+
+```bash
+findmnt -n -o FSTYPE /                              # must say ext4, not overlay
+```
+
+If it still says `overlay`, force it manually:
+
+```bash
+sudo mount -o remount,rw /boot/firmware
+sudo sed -i 's/overlayroot=[^ ]*/overlayroot=disabled/' /boot/firmware/cmdline.txt
+sudo reboot
+```
+
+Then do the actual update:
+
+```bash
 sudo apt update && sudo apt full-upgrade
 sudo -u frame git -C /opt/frame-tv-sync pull
 sudo /opt/frame-tv-sync/.venv/bin/pip install -U -r /opt/frame-tv-sync/requirements.txt   # optional
